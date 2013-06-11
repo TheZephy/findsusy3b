@@ -1,0 +1,21 @@
+Fullrun14: mumudz fixed 			- NO JET SMEARING
+Fullrun15: mumudz with m(mu,mu) > 45. GeV	- NO JET SMEARING
+Fullrun16: mumudz without m(mu,mu), vtx_n < 11
+Fullrun17: mumudz without m(mu,mu) > 45. GeV
+Fullrun18: zmass window 10 - 80
+Fullrun19: TTjets v2 sample
+Fullrun20: delta_vtx_z
+Fullrun21: Stage + mumudz before tight selection
+Fullrun22: last_mumudz + rebin of delta_vtx_z
+Fullrun23: rebin again + all muons
+Fullrun24: tight->loose_muons
+Fullrun25: delta z between 2 closest vtx and only 2 tight muons
+Fullrun27: First run with systematics
+Fullrun26: Attempt for old systematics
+Fullrun28: Default run without systematics
+Fullrun29: Muon relIso = 0.5 run without systematics
+Fullrun30: First run after Analysis
+Fullrun31: PFJetSmearing with gen jet smearing
+Fullrun32: PFJetSmearing with reco jet smearing
+Fullrun38: trigger matched histogram with working triggers & ttbar mcatnlo
+Fullrun39: more trigger matched histograms & ttbar mcatnlo correctly implemented
