@@ -10,7 +10,7 @@
 class BTagging 
 {
 public: 
-  BTagging(int seed = 0);
+  BTagging(const char * EffMapFile, int seed = 0);
   ~BTagging();
 
   // modify the b-tag of the jet according to its pt and eta
@@ -19,12 +19,10 @@ public:
 private:
   double GetBTagScaleFactor(double pt);
   double GetBTagScaleFactorError(double pt);
-  double GetBMisTagScaleFactor(double pt, double eta, bool finebin = true);
-  double GetBMisTagEfficiency(double pt, double eta, bool finebin = true);
-  double GetBTagEfficiencyData(double btag);
-  double GetBTagEfficiencyDataError(double btag);
-  double GetBTagEfficiencyMC(double btag);
-  double GetCTagEfficiencyMC(double btag);
+  double GetBMisTagScaleFactor(double pt, double eta);
+  double GetBMisTagEfficiency(double pt, double eta);
+  double GetBTagEfficiency(double pt, double eta);
+  double GetCTagEfficiency(double pt, double eta);
 
   void modifyBTagsWithSF(bool & isBTagged, int pdgIdPart,
 			 double Btag_SF, double Btag_eff, double Ctag_eff,
