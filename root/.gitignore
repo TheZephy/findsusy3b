@@ -1,0 +1,13 @@
+!.gitignore
+
+# Copiled files #
+#################
+
+*.o
+*.so
+*.d
+
+# emacs files #
+###############
+
+*~
