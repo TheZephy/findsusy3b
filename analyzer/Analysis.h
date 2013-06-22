@@ -116,6 +116,9 @@ protected:
   Double_t fTL_mt_max;
   Double_t fTL_njets_min;
 
+  // values for b-tagging (BTAG)
+  Double_t fBTAG_threshold;
+
   // values for smearing jet energies (JER)
   Bool_t   fJER_calculation;
   Double_t fJER_center;
@@ -179,6 +182,7 @@ protected:
   void GetSimplifiedModelParticles(map<string, vector<int> > & particles, int vertex);
   int IsSimplifiedModel(map<string, vector<int> > & particles);
   void SignalStudy(int & charge);
+  void TriggerMatchingComparison( int, const char *);
   void TightLooseRatioCalculation(const vector<int> & loose_muons,
 				  const vector<int> & tight_muons,
 				  const vector<int> & jets,
@@ -187,6 +191,7 @@ protected:
   double GetJERScale(double eta);
   void PFJetSmearing();
   void PFJetSmearingCalculation();
+  void BTagEfficiencyMap();
 
   Bool_t TriggerMatched(Int_t muonIterator, vector <TString> triggerFilters);
   Bool_t dRMatched(Int_t muonIterator, Int_t triggerID);
