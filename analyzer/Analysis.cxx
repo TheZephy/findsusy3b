@@ -53,15 +53,15 @@ Bool_t check_root_file(const char * fileName)
 }
 
 Analysis::Analysis(TTree & inputTree, TTree & outputTree, CfgParser & cfgFile)
-  : TreeContent(& inputTree) , fInputTree(inputTree), fOutputTree(outputTree),
-    fCfgFile(cfgFile), fBTagging(35535)
+  : TreeContent(& inputTree) , fInputTree(inputTree), fOutputTree(outputTree), fCfgFile(cfgFile),
+    fBTagging(gSystem->ExpandPathName(fCfgFile.entries["btag"].s["BTAG_EffMapFile"].c_str()), 35535)
 {
   //////////////////////////////////////////////////////////////////////
   // Configuration options
 
   // fill output tree?
   fFill = fCfgFile.entries["io"].b["FillTree"];
- 
+
   // Which type of input (signal, background, data, MC)?
   fSample = fCfgFile.entries["io"].s["Sample"];
   if (fSample == "None")
@@ -140,6 +140,17 @@ Analysis::Analysis(TTree & inputTree, TTree & outputTree, CfgParser & cfgFile)
   INFO("fTL_mt_max: " << fTL_mt_max);
   INFO("fTL_nJets: " << fTL_njets_min);
 
+  // values for b-tagging
+  // (BTAG)
+  GetValue(fBTAG_threshold, fCfgFile.entries["btag"], "BTAG_threshold");
+  const char * EffMapFile = gSystem->ExpandPathName(fCfgFile.entries["btag"].s["BTAG_EffMapFile"].c_str());
+  if (!check_root_file(EffMapFile)) {
+    ERROR("Could not find btag efficiency file " << EffMapFile);
+    THROW("Missing required file: " + string(EffMapFile));
+  }
+
+  INFO("fBTAG_threshold: " << fBTAG_threshold);
+
   // values for smearing jet energies to obtain correct jet energy resolution
   // (JER)
   GetValue(fJER_calculation, fCfgFile.entries["jer"], "JER_calculation");
@@ -212,7 +223,7 @@ Analysis::Analysis(TTree & inputTree, TTree & outputTree, CfgParser & cfgFile)
   else {
     fLumiRanges = "";
   }
-  
+
   // Event filter. Default: empty string,i.e. do not filter
   if (fInputType == "data") {
     fEventFilter = fCfgFile.entries["filters"].s["EventFilter"];
@@ -228,6 +239,13 @@ Analysis::Analysis(TTree & inputTree, TTree & outputTree, CfgParser & cfgFile)
   INFO("DeltaPhiMin = " << fDeltaPhiMin);
 }
 
+
+bool CompGreaterBtag(pair<double, int> b1, pair<double, int> b2)
+{
+  return b1.first > b2.first;
+}
+
+
 void Analysis::GetValue(string & var, cfgEntry & parentName, string varName) {
   var = parentName.s.at(varName);
 
@@ -235,7 +253,7 @@ void Analysis::GetValue(string & var, cfgEntry & parentName, string varName) {
   if ( !(fCfgFile.entries["systematics"].sub[varName].ss["Values"].empty()) ) {
     for (std::vector<string>::iterator it = fCfgFile.entries["systematics"].sub[varName].ss["Values"].begin();
 	 it != fCfgFile.entries["systematics"].sub[varName].ss["Values"].end(); ++it) {
-      
+
       ssys a = ssys(&var,
 		    *it,
 		    fCfgFile.entries["systematics"].sub[varName].s.at("RunTag"));
@@ -258,7 +276,7 @@ void Analysis::GetValue(bool & var, cfgEntry & parentName, string varName) {
   if ( !(fCfgFile.entries["systematics"].sub[varName].bb["Values"].empty()) ) {
     for (std::vector<bool>::iterator it = fCfgFile.entries["systematics"].sub[varName].bb["Values"].begin();
 	 it != fCfgFile.entries["systematics"].sub[varName].bb["Values"].end(); ++it) {
-      
+
       bsys a = bsys(&var,
 		    *it,
 		    fCfgFile.entries["systematics"].sub[varName].s.at("RunTag"));
@@ -281,7 +299,7 @@ void Analysis::GetValue(double & var, cfgEntry & parentName, string varName) {
   if ( !(fCfgFile.entries["systematics"].sub[varName].vv["Values"].empty()) ) {
     for (std::vector<double>::iterator it = fCfgFile.entries["systematics"].sub[varName].vv["Values"].begin();
 	 it != fCfgFile.entries["systematics"].sub[varName].vv["Values"].end(); ++it) {
-      
+
       dsys a = dsys(&var,
 		    *it,
 		    fCfgFile.entries["systematics"].sub[varName].s.at("RunTag"));
@@ -373,19 +391,19 @@ void Analysis::GetSimplifiedModelParticles(map<string, vector<int> > & particles
     // only take particles from this vertex
     if (truth_bvtxid[i] != vertex)
       continue;
-    
+
     int pdgid = abs(truth_pdgid[i]);
-    
+
     if (pdgid == 13) {
       particles["mu"].push_back(i);
     }
     else if (pdgid == 1000024) {
       particles["x+-1"].push_back(i);
-      GetSimplifiedModelParticles(particles, truth_evtxid[i]);      
+      GetSimplifiedModelParticles(particles, truth_evtxid[i]);
     }
     else if (pdgid == 1000037) {
       particles["x+-2"].push_back(i);
-      GetSimplifiedModelParticles(particles, truth_evtxid[i]);      
+      GetSimplifiedModelParticles(particles, truth_evtxid[i]);
     }
     else if (pdgid == 1000022) {
       particles["x01"].push_back(i);
@@ -419,7 +437,7 @@ void Analysis::GetSimplifiedModelParticles(map<string, vector<int> > & particles
     }
     else if (pdgid == 23 || pdgid == 25) {
 	particles["ZH"].push_back(i);
-	GetSimplifiedModelParticles(particles, truth_evtxid[i]);      
+	GetSimplifiedModelParticles(particles, truth_evtxid[i]);
     }
     else if (pdgid == 0) {
       // ignore
@@ -432,10 +450,10 @@ void Analysis::GetSimplifiedModelParticles(map<string, vector<int> > & particles
 int Analysis::IsSimplifiedModel(map<string, vector<int> > & particles)
 {
   GetSimplifiedModelParticles(particles, 1);
-  
+
   if (particles["mu"].size() >= 2 &&
       particles["q"].size() >= 2) {
-    
+
     if (particles["x+-2"].size() > 0) { // Chargino 2
       return 7;
     }
@@ -444,7 +462,7 @@ int Analysis::IsSimplifiedModel(map<string, vector<int> > & particles)
       return 6;
     }
 
-    else if (particles["x04"].size() > 0) { // Neutralino 4 decay 
+    else if (particles["x04"].size() > 0) { // Neutralino 4 decay
       return 5;
     }
 
@@ -462,7 +480,7 @@ int Analysis::IsSimplifiedModel(map<string, vector<int> > & particles)
     else if (particles["mu"].size() == 2 &&
 	     //truth_pdgid[particles['m'][0]] == truth_pdgid[particles['m'][1]] &&
 	     particles["x01"].size() >= 1 &&
-	     particles["q"].size() == 2 && 
+	     particles["q"].size() == 2 &&
 	     particles["ZH"].size() == 0 &&
 	     particles["W"].size() == 0) { // SMS
       return 1;
@@ -486,8 +504,8 @@ Bool_t Analysis::TriggerMatched(Int_t muonIterator, vector <TString> triggerFilt
 	  return true;
     }
   }
-  
-  return false;  
+
+  return false;
 }
 
 Bool_t Analysis::dRMatched(Int_t muonIterator, Int_t triggerID) {
@@ -498,7 +516,7 @@ Bool_t Analysis::dRMatched(Int_t muonIterator, Int_t triggerID) {
       Double_t dEta = fabs( muo_eta[muonIterator] - trig_eta[k] );
       Double_t dPhi = fabs( DeltaPhi(muo_phi[muonIterator], trig_phi[k]) );
       Double_t dR   = sqrt( pow(dEta, 2) + pow(dPhi, 2) );
-         if( dR <= mindeltaR ) {
+	 if( dR <= mindeltaR ) {
 	   return true;
 	 }
     }
@@ -538,7 +556,7 @@ Bool_t Analysis::JetCuts (Int_t i, vector <int> muons) {
   TCutList JetCuts(histo, global_weight);
 
   TLorentzVector jet(pfjet_px[i], pfjet_py[i], pfjet_pz[i], pfjet_E[i]);
-    
+
   // set cuts
   JetCuts.Set("nPfJet_pt", pfjet_pt[i] > 15., pfjet_pt[i]);
   JetCuts.Set("nPfJet_eta", fabs(pfjet_eta[i]) < 2.4, fabs(pfjet_eta[i]));
@@ -567,11 +585,11 @@ Bool_t Analysis::JetCuts (Int_t i, vector <int> muons) {
 
 
 Bool_t Analysis::ElectronCuts (Int_t i) {
-  // https://twiki.cern.ch/twiki/bin/view/CMS/EgammaCutBasedIdentification    
+  // https://twiki.cern.ch/twiki/bin/view/CMS/EgammaCutBasedIdentification
   TCutList ElectronCuts(histo, global_weight);
   // cut values for WP80 / medium
   const Double_t cutdEtaSCTrackAtVtxB = 0.004;
-  const Double_t cutdEtaSCTrackAtVtxE = 0.007; 
+  const Double_t cutdEtaSCTrackAtVtxE = 0.007;
   const Double_t cutdPhiSCTrackAtVtxB = 0.06;
   const Double_t cutdPhiSCTrackAtVtxE = 0.03;
   const Double_t cutSigmaIetaIetaB = 0.01;
@@ -582,8 +600,8 @@ Bool_t Analysis::ElectronCuts (Int_t i) {
   const Double_t cutdZvtx = 0.1;
   const Double_t cut1OverEminus1OverP = 0.05;
   const Double_t cutPFisoOverPt = 0.15;
-  const Double_t cutMissingHits = 1.; //  
-      
+  const Double_t cutMissingHits = 1.; //
+
   // pfiso
   Double_t rhoPrime = max(global_rho, 0.0);
   Double_t iso_n = 0, AEff = 0;
@@ -594,7 +612,7 @@ Bool_t Analysis::ElectronCuts (Int_t i) {
   if (fabs(ele_SCeta[i]) >= 2.2 && fabs(ele_SCeta[i]) < 2.3 ) AEff = 0.180;
   if (fabs(ele_SCeta[i]) >= 2.3 && fabs(ele_SCeta[i]) < 2.4 ) AEff = 0.190;
   if (fabs(ele_SCeta[i]) >= 2.4) AEff = 0.260;
-  iso_n = ele_PFiso[i][0] + max( ele_PFiso[i][1] + ele_PFiso[i][2] - rhoPrime*AEff, 0.0 ); 
+  iso_n = ele_PFiso[i][0] + max( ele_PFiso[i][1] + ele_PFiso[i][2] - rhoPrime*AEff, 0.0 );
 
   const Double_t cutHCalIsoOpt =  0.2;
   const Double_t cutECalIsoOpt =  0.2;
@@ -602,7 +620,7 @@ Bool_t Analysis::ElectronCuts (Int_t i) {
 
   // own cuts
   ElectronCuts.Set("nElectron_pt", ele_pt[i] > 15.0, ele_pt[i]);
-      
+
   // section specific cuts
   if (fabs(ele_SCeta[i])<1.4442) {
     // Barrel
@@ -635,7 +653,7 @@ Bool_t Analysis::ElectronCuts (Int_t i) {
   ElectronCuts.Set("nElectron_HCalIsoOpt", ele_Dr03HCalSumEt[i]/ele_pt[i] < cutHCalIsoOpt, ele_Dr03HCalSumEt[i]/ele_pt[i]);
   ElectronCuts.Set("nElectron_ECalIsoOpt", ele_Dr03ECalSumEt[i]/ele_pt[i] < cutECalIsoOpt, ele_Dr03ECalSumEt[i]/ele_pt[i]);
   ElectronCuts.Set("nElectron_TkIsoOpt" ,    ele_Dr03TkSumPt[i]/ele_pt[i] < cutTkIsoOpt, ele_Dr03TkSumPt[i]/ele_pt[i]);
-      
+
   ElectronCuts.FillHistograms(fRunTag.c_str());
   return ElectronCuts.PassesAll();
 }
@@ -651,6 +669,46 @@ bool truth_pt_comparator::operator()(int i, int j)
   return fAnalysis.truth_pt[i] > fAnalysis.truth_pt[j];
 }
 
+void Analysis::TriggerMatchingComparison(int muonIterator, const char * tag) {
+  vector <TString> muonTriggerFilters;
+  // unique triggerfilters to match to
+  muonTriggerFilters.push_back("hltDiMuonGlb17Glb8DzFiltered0p2"); // HLT_Mu17_Mu8_v
+  muonTriggerFilters.push_back("hltL3fL1DoubleMu10MuOpenL1f0L2f10L3Filtered17"); // HLT_Mu17_Mu8_v old version
+  muonTriggerFilters.push_back("hltDiMuonGlb17Trk8DzFiltered0p2"); // HLT_Mu17_TkMu8_v
+
+  const unsigned int matchLength = muonTriggerFilters.size();
+  bool match[matchLength];
+  for (int i = 0; i < matchLength; i++) match[i] = false;
+
+  for (unsigned int k = 0; k < (*trig_filter).size(); k++) {
+    TString name = (TString) (*trig_filter).at(k);
+    for (unsigned int l = 0; l < muonTriggerFilters.size(); l++) {
+      // check for matching triggerfilter names and check dR
+      if ( name.EqualTo(muonTriggerFilters.at(l)) )
+	if ( dRMatched(muonIterator, k) )
+	  match[l] = true;
+    }
+  }
+
+  bool allMatch = true;
+  for (unsigned int i = 0; i < matchLength; i++) {
+    if (match[i]) {
+      Fill(Form("%s_matched", tag), i);
+
+      bool onlyMatch = true;
+      for (unsigned int k = 0; k < matchLength; k++) {
+	if (match[k] && k != i) onlyMatch = false;
+      }
+      if (onlyMatch) Fill(Form("%s_matched", tag), matchLength+i);
+
+    } else {
+      allMatch = false;
+    }
+  }
+
+  if (allMatch) Fill(Form("%s_matched", tag), matchLength);
+}
+
 void Analysis::SignalStudy(int & charge)
 {
   // muons, neutrinos and quarks in final state
@@ -663,7 +721,7 @@ void Analysis::SignalStudy(int & charge)
   // slepton four-momentum
   TLorentzVector slepton;
   TLorentzVector resonance;
-  
+
   for (int i = 0; i < truth_n; i++) {
     // sum up four-momenta of final state particles
     if (truth_evtxid[i] == -1 && truth_pdgid[i] != 0 &&
@@ -747,7 +805,7 @@ void Analysis::SignalStudy(int & charge)
     }
   }
 
-  
+
 
   // do some cross-checks
   if ((nLeptons != 1 || nGauginos != 1) && (nSleptons != 1 || nBosons != 1)) {
@@ -808,7 +866,7 @@ void Analysis::SignalStudy(int & charge)
   // everything below this line for signal MC only...
   if (!fIsSignal)
     return;
-  
+
   Fill("Sig_signal_counter", 0.);
   map<string, vector<int> > simpleParticles;
   int modelid = IsSimplifiedModel(simpleParticles);
@@ -823,7 +881,7 @@ void Analysis::SignalStudy(int & charge)
 	continue;
       }
       Fill("Sig_signal_counter",i);
-    } 
+    }
     else if (modelid == -1) {
       //TruthDump();
     }
@@ -888,14 +946,14 @@ void Analysis::SignalStudy(int & charge)
 }
 
 void Analysis::TightLooseRatioCalculation(const vector<int> & loose_muons,
-					  const vector<int> & tight_muons,					  
+					  const vector<int> & tight_muons,
 					  const vector<int> & jets,
 					  const double HT)
-{  
+{
   // compute variables
   int nMuonsLoose = loose_muons.size();
   int nMuonsTight = tight_muons.size();
-  
+
   // fill histograms before cuts
   Fill("TL_met", met_et[MET_INDEX]);
   Fill("TL_metsig", met_etsignif[MET_INDEX]);
@@ -903,7 +961,7 @@ void Analysis::TightLooseRatioCalculation(const vector<int> & loose_muons,
   Fill("TL_ht", HT);
   Fill("TL_nloose", nMuonsLoose);
 
-  //trigger matching for specific 
+  //trigger matching for specific
 
   // global requirements to get more QCD like events
   TCutList QCDCuts(histo, global_weight);
@@ -951,7 +1009,7 @@ void Analysis::TightLooseRatioCalculation(const vector<int> & loose_muons,
       zmass = 91.+TMath::Sign(1., m-91.)*TMath::Min(fabs(91.-zmass), fabs(91.-m));
 
 
-     
+
       Fill("TL_mumudz", fabs( muo_dzTk[j] - muo_dzTk[loose_muons[i]] ));
       mindz = TMath::Min( mindz, fabs(muo_dzTk[j] - muo_dzTk[loose_muons[i]]) );
     }
@@ -976,11 +1034,11 @@ void Analysis::TightLooseRatioCalculation(const vector<int> & loose_muons,
   // apply cuts
   if (!QCDCuts.PassesAll())
     return;
-  
+
   // if( (fInputType == "data" || fInputType == "mc") && muo_pt[loose_muons[0]] > 59. ) {
   //     INFO("runid: " << global_run << ":" << lumi_section << ":" << global_event);
   //   }
-  
+
   // double-check that there is only one loose muon
   assert(nMuonsLoose == 1);
   assert(fJets >= 1);
@@ -1021,13 +1079,13 @@ void Analysis::Loop()
     SetBranchAddresses();
     CreateBranches();
   }
-  
+
   // create histograms
   CreateTaggedHistograms();
 
   // create lumi filter (based on JSON file from configuration)
   lumi::RunLumiRanges runcfg(fLumiRanges);
-  
+
   // create event filter (based on zipped filter file from configuration)
   EventFilter hcalevtcfg(fEventFilter.c_str());
 
@@ -1038,7 +1096,7 @@ void Analysis::Loop()
   if (fMaxEvents > 0)
     INFO("Stopping after fMaxEvents = " << fMaxEvents);
 
-  
+
 
   fFirstWarnWeight = true;
   for (Long64_t jentry=0; jentry < nentries && (jentry < fMaxEvents || fMaxEvents < 0) ; jentry++) {
@@ -1081,13 +1139,13 @@ void Analysis::Loop()
       (*(*it).var) = (*it).sys;
       fRunTag = Form("%s_%s", (*it).tag.c_str(), (*it).sys ? "true" : "false");
       Analyze(jentry, hcalevtcfg, runcfg);
-      (*(*it).var) = oldVar; 
+      (*(*it).var) = oldVar;
     }
   }
 }
 
 void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLumiRanges & runcfg) {
-  
+
   Fill("runnumber", global_run);
 
   //////////////////////////////////////////////////////////////////////
@@ -1135,8 +1193,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     global_weight = 1.;
   }
 
-  Fill("cutflow", "weight"); 
-  DEBUG("cutflow " << "weight"); 
+  Fill("cutflow", "weight");
+  DEBUG("cutflow " << "weight");
 
   //////////////////////////////////////////////////////////////////////
   // Split RPV SUSY in RPV signal and RPV background
@@ -1144,10 +1202,10 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   fSigMu1->SetXYZT(0, 0, 0, 0);
   fSigJet0->SetXYZT(0, 0, 0, 0);
   fSigJet1->SetXYZT(0, 0, 0, 0);
-    
+
   // slepton charge
   int charge = 0;
-  
+
   if (fInputType == "signal" || fInputType == "background") {
     try {
       SignalStudy(charge);
@@ -1188,7 +1246,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     // if (weight != 0)
     global_weight *= weight;
     // else {
-    // 	WARNING("pileup weight is zero - not using pileup reweighting for this event");
+    //	WARNING("pileup weight is zero - not using pileup reweighting for this event");
     // }
   }
 
@@ -1257,6 +1315,10 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   // PF jet smearing
   double old_met = met_et[MET_INDEX];
   PFJetSmearing();
+  if (fSample == "ttjets") {
+    BTagEfficiencyMap();
+  }
+
   Fill("cutflow", "jetsmear");
   DEBUG("cutflow " << "jetsmear");
 
@@ -1299,11 +1361,11 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   }
   int nMuon = muons.size();
 
-  /////////////////////////////////////////////////////////////////////  
+  /////////////////////////////////////////////////////////////////////
   // Jets
   double HT = 0;
   vector <int> jets;
-    
+
   for (int i = 0; i < pfjet_n; i++) {
     if ( JetCuts(i,muons) ) {
       if ( pfjet_pt[i] > 30. )
@@ -1319,44 +1381,31 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
 
   for (int i = 0; i < ele_n; i++) {
     if ( ElectronCuts(i) )
-      nElectron++;   
+      nElectron++;
   }
   Fill("nElectron", nElectron);
-    
+
   //////////////////////////////////////////////////////////////////////
   // loose and tight muon id - add isolation and trigger matching
   vector <int> loose_muons;
   vector <int> tight_muons;
   vector <double> tight_dR;
   vector <double> loose_dR;
-  int matched;
+  int muonsMatched = 0;
   for (int i = 0; i < nMuon; i++) {
     vector <TString> muonTriggerFilters;
     // unique triggerfilters to match to
-    muonTriggerFilters.push_back("hltDiMuonGlb17Glb8DzFiltered0p2"); // HLT_Mu17_Mu8_v
-    muonTriggerFilters.push_back("hltL3fL1DoubleMu10MuOpenL1f0L2f10L3Filtered17"); // HLT_Mu17_Mu8_v old version
+    // muonTriggerFilters.push_back("hltDiMuonGlb17Glb8DzFiltered0p2"); // HLT_Mu17_Mu8_v
+    // muonTriggerFilters.push_back("hltL3fL1DoubleMu10MuOpenL1f0L2f10L3Filtered17"); // HLT_Mu17_Mu8_v old version
     muonTriggerFilters.push_back("hltDiMuonGlb17Trk8DzFiltered0p2"); // HLT_Mu17_TkMu8_v
     //muonTriggerFilters.push_back("hltDiMuonMu13Mu8DzFiltered0p2"); // HLT_Mu13_Mu8_v
 
-    bool match[3] = {false};
-    for (unsigned int k = 0; k < (*trig_filter).size(); k++) {
-      TString name = (TString) (*trig_filter).at(k);
-      for (unsigned int l = 0; l < muonTriggerFilters.size(); l++) {
-	// check for matching triggerfilter names and check dR
-	if ( name.EqualTo(muonTriggerFilters.at(l)) )
-	  if ( dRMatched(i, k) )
-	    match[l] = true;
-      }
-    }
-    if (match[0] || match[1]) Fill("matched", 0.);
-    if (match[2]) Fill("matched", 1.);
-    if ((match[0] || match[1]) && match[2]) Fill("matched", 2.);
-    if ((match[0] || match[1]) && !match[2]) Fill("matched", 3.);
-    if (!(match[0] || match[1]) && match[2]) Fill("matched", 4.);
+    TriggerMatchingComparison(i, "def");
 
     if ( !TriggerMatched(i, muonTriggerFilters) )
       continue;
-    matched++;
+
+    muonsMatched++;
 
     // muo_PFiso
     // relative isolation
@@ -1411,7 +1460,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
       tight_dR.push_back(Rmin);
     }
   }
-  Fill("nMuon_matched", matched);
+  Fill("nMuon_matched", muonsMatched);
   Int_t nMuonsLoose = loose_muons.size();
   Int_t nMuonsTight = tight_muons.size();
 
@@ -1427,17 +1476,17 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     }
   }
   Fill("delta_vtx_z", vtx_mindz);
-    
+
 
   // Photons
   // https://twiki.cern.ch/twiki/bin/viewauth/CMS/Vgamma2011PhotonID
-  // Variable 	Method 	recommended cuts
-  // Pixel Seed Veto 	hasPixelSeed() 	YES
-  // H/E 	hadronicOverEm() 	< 0.05
-  // shower shape 	sigmaIetaIeta() 	< 0.011 (EB), < 0.03 (EE)
-  // hollow cone track isolation 	trkSumPtHollowConeDR04() 	< 2.0 + 0.001 x Et + 0.0167 x rho25 (EB), < 2.0 + 0.001 x Et + 0.032 x rho25 (EE)
-  // Jurrasic ECAL Isolation 	ecalRecHitSumEtConeDR04() 	< 4.2 + 0.006 x Et + 0.183 x rho25 (EB), < 4.2 + 0.006 x Et + 0.090 x rho25 (EE)
-  // tower-based HCAL Isolation 	hcalTowerSumEtConeDR04() 	< 2.2 + 0.0025 x Et + 0.062 x rho25 (EB), < 2.2 + 0.0025 x Et + 0.180 x rho25 (EE)
+  // Variable	Method	recommended cuts
+  // Pixel Seed Veto	hasPixelSeed()	YES
+  // H/E	hadronicOverEm()	< 0.05
+  // shower shape	sigmaIetaIeta()		< 0.011 (EB), < 0.03 (EE)
+  // hollow cone track isolation	trkSumPtHollowConeDR04()	< 2.0 + 0.001 x Et + 0.0167 x rho25 (EB), < 2.0 + 0.001 x Et + 0.032 x rho25 (EE)
+  // Jurrasic ECAL Isolation	ecalRecHitSumEtConeDR04()	< 4.2 + 0.006 x Et + 0.183 x rho25 (EB), < 4.2 + 0.006 x Et + 0.090 x rho25 (EE)
+  // tower-based HCAL Isolation		hcalTowerSumEtConeDR04()	< 2.2 + 0.0025 x Et + 0.062 x rho25 (EB), < 2.2 + 0.0025 x Et + 0.180 x rho25 (EE)
 
   // Additionally apply spike cleaning: sigmaIEtaIEta > 0.001 and sigmaIPhiIPhi > 0.001 in Barrel region only
   // Et is the photon transverse energy
@@ -1447,7 +1496,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   // process.kt6PFJets25 = process.kt6PFJets.clone( doRhoFastjet = True )
   // process.kt6PFJets25.Rho_EtaMax = cms.double(2.5)
   // process.fjSequence25 = cms.Sequence( process.kt6PFJets25 )
-    
+
   DEBUG("cutflow " << "objectID");
 
   // Fill vertex plots before event cleaning and object cuts
@@ -1461,7 +1510,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   }
 
   //////////////////////////////////////////////////////////////////////
-  // Event cleaning    
+  // Event cleaning
   TCutList EventFilterList(histo, global_weight);
 
   for (Int_t i = 0; i < eventfilter_n; i++) {
@@ -1469,7 +1518,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     // ignoring the following filters
     if ( filterName.Contains("scrapingFilter")       ||
 	 filterName.Contains("ECALDeadCellFilterBE") ||
-	 filterName.Contains("MuonFailureFilter")    || 
+	 filterName.Contains("MuonFailureFilter")    ||
 	 ( fInputType != "data"  &&
 	   filterName.Contains("HCALLaserFilterFromTriggerResult")) ) {
       continue;
@@ -1511,6 +1560,42 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   }
 
   //////////////////////////////////////////////////////////////////////
+  // b-tag efficiency
+
+  if ( fSample == "ttjets" ) {
+    for (int i = 0; i < pfjet_n; i++) {
+      // CSV L
+      if ( pfjet_btag[i][6] > 0.244 ) {
+	Fill("btag_eff", 0.);
+	// CSV M
+	if ( pfjet_btag[i][6] > 0.679 ) {
+	  Fill("btag_eff", 1.);
+	  // CSV T
+	  if ( pfjet_btag[i][6] > 0.898 ) {
+	    Fill("btag_eff", 2.);
+	  }
+	}
+      }
+    }
+
+    for (int i = 0; i < truth_n; i++) {
+      // b-tag
+      if ( abs(truth_pdgid[i]) == 5 ) Fill("btag_eff", 3.);
+
+      // c-tag
+      if ( abs(truth_pdgid[i]) == 4 ) Fill("btag_eff", 4.);
+
+      // light jets
+      if ( abs(truth_pdgid[i]) == 1 ||
+	   abs(truth_pdgid[i]) == 2 ||
+	   abs(truth_pdgid[i]) == 3 ||
+	   abs(truth_pdgid[i]) == 21 ) {
+	Fill("btag_eff", 5.);
+      }
+    }
+  }
+
+  //////////////////////////////////////////////////////////////////////
   // loose jet id
   Fill("Jet_pt0", fJets > 0 ? pfjet_pt[jets[0]] : 0);
   Fill("Jet_pt1", fJets > 1 ? pfjet_pt[jets[1]] : 0);
@@ -1520,6 +1605,20 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   }
   Fill("cutflow", "loose jet");
   DEBUG("cutflow " << "loose jet");
+
+
+
+  //////////////////////////////////////////////////////////////////////
+  // fill 2 highest btags from jets
+  vector<pair<double, int> > btagValOfJets;
+  
+  for (int i = 0; i < fJets; i++) {
+    int ii = jets[i];
+    btagValOfJets.push_back(make_pair(pfjet_btag[ii][6], ii));
+  }
+  
+  sort(btagValOfJets.begin(), btagValOfJets.end(), CompGreaterBtag);
+
 
   //////////////////////////////////////////////////////////////////////
   // two muon requirements
@@ -1668,7 +1767,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     muonTriggerFilters.push_back("hltDiMuonGlb17Glb8DzFiltered0p2"); // HLT_Mu17_Mu8_v
     muonTriggerFilters.push_back("hltL3fL1DoubleMu10MuOpenL1f0L2f10L3Filtered17"); // HLT_Mu17_Mu8_v old version
     muonTriggerFilters.push_back("hltDiMuonGlb17Trk8DzFiltered0p2"); // HLT_Mu17_TkMu8_v
-     
+
     bool match[3] = {false};
     for (unsigned int k = 0; k < (*trig_filter).size(); k++) {
       TString name = (TString) (*trig_filter).at(k);
@@ -1684,21 +1783,22 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     if ((match[0] || match[1]) && match[2]) Fill("dycut_matched", 2.);
     if ((match[0] || match[1]) && !match[2]) Fill("dycut_matched", 3.);
     if (!(match[0] || match[1]) && match[2]) Fill("dycut_matched", 4.);
-  }    
-  
+  }
 
 
   //////////////////////////////////////////////////////////////////////
   // B-tagging
+  Fill("1st_btag", btagValOfJets[0].first);
+  Fill("2nd_btag", btagValOfJets[1].first);
+
   fIsBTagged = false;
   for (int n = 0; n < fJets; n++) {
     int jj = jets[n];
-    Int_t truth = pfjet_truth[jj];
-    bool tagged = pfjet_btag[jj][6] > 0.679; // CVSM: http://cms.cern.ch/iCMS/jsp/openfile.jsp?tp=draft&files=AN2012_187_v5.pdf
-      // fBTagging.isBJet(pfjet_btag[jj][6], 
-      // 				   truth < 0 ? 0 : truth_pdgid[truth],
-      // 				   pfjet_pt[jj], 
-      // 				   pfjet_eta[jj]);
+    //bool tagged = pfjet_btag[jj][6] > 0.679; // CSVM: https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
+    bool tagged = fBTagging.isBJet(pfjet_btag[jj][6],
+      				   pfjet_flav[jj],
+      				   pfjet_pt[jj],
+      				   pfjet_eta[jj]);
     Fill("isbtag", pfjet_btag[jj][6], tagged ? 1 : 0);
     if (tagged)
       fIsBTagged = true;
@@ -1719,7 +1819,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
 	muonTriggerFilters.push_back("hltDiMuonGlb17Glb8DzFiltered0p2"); // HLT_Mu17_Mu8_v
 	muonTriggerFilters.push_back("hltL3fL1DoubleMu10MuOpenL1f0L2f10L3Filtered17"); // HLT_Mu17_Mu8_v old version
 	muonTriggerFilters.push_back("hltDiMuonGlb17Trk8DzFiltered0p2"); // HLT_Mu17_TkMu8_v
-     
+
 	bool match[3] = {false};
 	for (unsigned int k = 0; k < (*trig_filter).size(); k++) {
 	  TString name = (TString) (*trig_filter).at(k);
@@ -1735,8 +1835,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
 	if ((match[0] || match[1]) && match[2]) Fill("CR1_matched", 2.);
 	if ((match[0] || match[1]) && !match[2]) Fill("CR1_matched", 3.);
 	if (!(match[0] || match[1]) && match[2]) Fill("CR1_matched", 4.);
-      }    
-  
+      }
+
     }
     if (fIsBTagged) {
       // CR2: large MET and btag enhanced control region
@@ -1804,11 +1904,11 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   Fill("btag_m_gaugino", GauginoMass);
   Fill("btag_m_smuon", SmuonMass);
   Fill("btag_jjmm_m", SmuonMass, GauginoMass);
-  Fill("btag_m_smu_chi", SmuonMass, GauginoMass); 
+  Fill("btag_m_smu_chi", SmuonMass, GauginoMass);
 
-    
+
   FillStage("btag2");
-    
+
 
   Fill("last_mumudz", fabs(muo_dzTk[fMuoId[0]]-muo_dzTk[fMuoId[1]]));
 
@@ -1846,7 +1946,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
 	continue;
       }
       Fill("Cut_signal_counter",i);
-    } 
+    }
     else if (modelid == 0) {
       //TruthDump();
     }
@@ -1878,17 +1978,17 @@ void Analysis::CreateVariables()
 void Analysis::CreateTaggedHistograms () {
   fRunTag = "0";
   CreateHistograms();
-  
+
   for (std::vector<ssys>::iterator it = sysStrings.begin() ; it != sysStrings.end(); ++it) {
     fRunTag = Form("%s_%s", (*it).tag.c_str(), (*it).sys.c_str());
     CreateHistograms();
   }
-  
+
   for (std::vector<dsys>::iterator it = sysDoubles.begin() ; it != sysDoubles.end(); ++it) {
     fRunTag = Form("%s_%g", (*it).tag.c_str(), (*it).sys);
     CreateHistograms();
   }
-  
+
   for (std::vector<bsys>::iterator it = sysBools.begin() ; it != sysBools.end(); ++it) {
     fRunTag = Form("%s_%s", (*it).tag.c_str(), (*it).sys ? "true" : "false");
     CreateHistograms();
@@ -1974,6 +2074,14 @@ void Analysis::CreateHistograms()
   CreateHisto("JER_deltaepteta", "reco jet E - true jet E:p_{T}:#eta", 40, -100, 100, 200, 0, 1000, 5, 0, 2.5);
   CreateHisto("JER_scale", "(reco jet E - true jet E)/true jet E", 100, -2, 2);
 
+  // B-Tagging
+  CreateHisto("btag_denom_b", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
+  CreateHisto("btag_denom_c", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
+  CreateHisto("btag_denom_l", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
+  CreateHisto("btag_num_b", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
+  CreateHisto("btag_num_c", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
+  CreateHisto("btag_num_l", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
+
   // Reskimming
   CreateHisto("bSkim_muo_n", "Number of muons", 10, -0.5, 9.5);
   CreateHisto("bSkim_muo_pt0", "pt of leading muon", 500, 0, 500);
@@ -2050,7 +2158,7 @@ void Analysis::CreateHistograms()
   CreateHisto("relIsoInJet", "muon relative isolation inside of jet", 200, 0, 10);
   CreateHisto("nMuon_matched", "muon trigger matching", 10, -0.5, 9.5);
 
-  CreateHisto("matched", "muon trigger matching", 5, -0.5, 4.5);
+  CreateHisto("def_matched", "muon trigger matching", 5, -0.5, 7.5);
   CreateHisto("dycut_matched", "muon trigger matching", 5, -0.5, 4.5);
   CreateHisto("CR1_matched", "muon trigger matching", 5, -0.5, 4.5);
 
@@ -2099,7 +2207,7 @@ void Analysis::CreateHistograms()
   CreateHisto("noise_hcal_isolatedNoiseSumEt", "noise_hcal_isolatedNoiseSumEt", 2, 0, 2);
   CreateHisto("noise_hcal_HasBadRBXTS4TS5", "noise_hcal_HasBadRBXTS4TS5", 2, 0, 2);
 
-  
+
 
   // checks for MC production
   CreateHisto("check_nmuon", "number of muons", 5, -0.5, 4.5);
@@ -2157,6 +2265,8 @@ void Analysis::CreateHistograms()
   CreateHisto("Jet_pt0", "jet p_{T}:jet p_{T}@GeV", 1000, 0, 1000);
   CreateHisto("Jet_pt1", "jet p_{T}:jet p_{T}@GeV", 1000, 0, 1000);
   CreateHisto("Jet_pt", "jet p_{T}:jet p_{T}@GeV", 20, 0, 100, 20, 0, 100);
+
+  CreateHisto("btag_eff", "CSV LMT, b, c, light", 6, -0.5, 5.5);
   CreateHisto("pfmet_old", "Particle flow MET (before smearing)@GeV", 1000, 0, 1000);
   CreateHisto("pfmet", "Particle flow MET@GeV", 1000, 0, 1000);
   CreateHisto("met3_met6", "met6@GeV:met3@GeV", 40, 0, 200, 40, 0, 200);
@@ -2175,6 +2285,7 @@ void Analysis::CreateHistograms()
   CreateHisto("m_smuon_precut", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
   CreateHisto("muo_n_precut", "Number of muons", 20, -0.5, 19.5);
   CreateHisto("m_mumu_zpeak", "Z-Peak m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
+
   CreateHisto("CR1_m_mumu", "CR1 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
   CreateHisto("CR2_m_mumu", "CR2 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
   CreateHisto("CR3_m_mumu", "CR3 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
@@ -2188,8 +2299,12 @@ void Analysis::CreateHistograms()
   CreateHisto("CR6_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 25, 0, 1000);
   CreateHisto("CR6_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
 
-  const double binsb[] = { 0, 3.3, 100 };
-  CreateHisto("isbtag", "isbtag:TCHE btag", 2, binsb, 2, 0, 2);
+  CreateHisto("1st_btag", "highest btag value from jets", 100, 0, 1);
+  CreateHisto("2nd_btag", "2nd highest btag value from jets", 100, 0, 1);
+
+
+  const double binsb[] = { 0, 0.679, 1};
+  CreateHisto("isbtag", "isbtag:CSVM btag", 2, binsb, 2, 0, 2);
   const double bins[] = { 0, 300, 700, 5000 };
   const int nMax = sizeof(bins)/sizeof(double)-1;
   CreateHisto("jjmm_m", "smuon mass m(#mu_{0},#mu_{1},jets)", nMax, bins, nMax, bins);
@@ -2203,13 +2318,13 @@ void Analysis::CreateHistograms()
   CreateHisto("btag_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
   CreateHisto("btag_m_smu_chi", "m(#chi): m(#tilde{#mu})", 110, 0, 2200, 25, 0, 500);
   CreateHisto("btag_ht", "HT@GeV", 100, 0, 500);
-  CreateHisto("btag_jjmm_m", "smuon mass m(#mu_{0},#mu_{1},jets)", nMax, bins, nMax, bins);  
+  CreateHisto("btag_jjmm_m", "smuon mass m(#mu_{0},#mu_{1},jets)", nMax, bins, nMax, bins);
 
   // event weights
   CreateHisto("weight", "weight", 200, 0., 10.);
   CreateHisto("log_global_weight", "log(global_weight)", 100, -5, 5);
   CreateHisto("log_weight", "log(weight)", 100, -5, 5);
-  
+
   // signalstudy
   CreateHisto("Sig_signal_counter", "Signal Counter", 10, 0., 10.);
   CreateHisto("Cut_signal_counter", "Signal Counter", 10, 0., 10.);
@@ -2244,7 +2359,7 @@ void Analysis::AddStageHisto (const char * name, const char * xtitle, Int_t nbin
 void Analysis::RemoveStageHisto (string name) {
   for (unsigned int i = 0; i < stageHistoNames.size(); i++) {
     string currentName = stageHistoNames[i];
-    
+
     if (name == currentName) {
       stageHistoNames.erase(stageHistoNames.begin()+i);
       stageHistoXTitles.erase(stageHistoXTitles.begin()+i);
@@ -2269,10 +2384,10 @@ void Analysis::FillStage (const char * stageTag) {
   }
 
   for (unsigned int i = 0; i < stageHistoNames.size(); i++) {
-    if (histo[Form("%s_%s_%s", fRunTag.c_str(), stageTag, stageHistoNames[i])] ==  0 && 
+    if (histo[Form("%s_%s_%s", fRunTag.c_str(), stageTag, stageHistoNames[i])] ==  0 &&
 	stageHistoNBinsY[i] == 0) {
       CreateHisto(Form("%s_%s", stageTag, stageHistoNames[i]), stageHistoXTitles[i], stageHistoNBinsX[i], stageHistoXLow[i], stageHistoXUp[i]);
-    } 
+    }
     else if (histo2[Form("%s_%s_%s", fRunTag.c_str(), stageTag, stageHistoNames[i])] ==  0 &&
 	     stageHistoNBinsY[i] > 0) {
       CreateHisto(Form("%s_%s", stageTag, stageHistoNames[i]), stageHistoXTitles[i], stageHistoNBinsX[i], stageHistoXLow[i], stageHistoXUp[i], stageHistoNBinsY[i], stageHistoYLow[i], stageHistoYUp[i]);
@@ -2282,16 +2397,16 @@ void Analysis::FillStage (const char * stageTag) {
   for (unsigned int i = 0; i < stageHistoNames.size(); i++) {
     if (stageHistoNBinsY[i] == 0) {
       Fill(Form("%s_%s", stageTag, stageHistoNames[i]), (*stageHistoFillValuesX[i]) );
-    } 
+    }
     else if (stageHistoNBinsY[i] > 0) {
       Fill(Form("%s_%s", stageTag, stageHistoNames[i]), (*stageHistoFillValuesX[i]), (*stageHistoFillValuesY[i]) );
-    }    
+    }
   }
 }
 
 void Analysis::ClearStages() {
   stageHistoNames.clear();
-  stageHistoXTitles.clear();   
+  stageHistoXTitles.clear();
   stageHistoNBinsX.clear();
   stageHistoXLow.clear();
   stageHistoXUp.clear();
@@ -2554,12 +2669,12 @@ void Analysis::PFJetSmearing()
       // match to generated jet
       double sum_truth = 0;
       for (int t = 0; t < truthjet_n; t++) {
-        double dR = sqrt(pow(pfjet_eta[j]-truthjet_eta[t], 2) +
+	double dR = sqrt(pow(pfjet_eta[j]-truthjet_eta[t], 2) +
 			 pow(DeltaPhi(pfjet_phi[j],truthjet_phi[t]), 2));
-        if (dR < 0.5) {
+	if (dR < 0.5) {
 	  // adding up all the jet components
 	  sum_truth += truthjet_pt[t];
-        }
+	}
       }
 
       double dpt = 0;
@@ -2572,7 +2687,7 @@ void Analysis::PFJetSmearing()
 	DEBUG("Random: scale = " << scale);
       }
       else {
-	
+
 	scale = (sum_truth + GetJERScale(pfjet_eta[j]) * (pfjet_pt[j] - sum_truth)) / pfjet_pt[j];
 	Fill("JER_dptsf", scale);
 	// if (truth_jet != pfjet_truth[j])
@@ -2593,7 +2708,7 @@ void Analysis::PFJetSmearing()
       pfjet_pz[j] *= scale;
     }
   }
-  
+
   // recalculate MET
   TVector3 mpf(met_ex[MET_INDEX], met_ey[MET_INDEX], 0.);
   met_phi[MET_INDEX] = mpf.Phi();
@@ -2611,25 +2726,19 @@ void Analysis::PFJetSmearingCalculation()
 
   // loop over all bins
   for (int biny = 1; biny < h->GetNbinsY()+1; biny++) {
-    // get value at bin center
-    //double f = h->GetYaxis()->GetBinLowEdge(biny)+h->GetYaxis()->GetBinWidth(biny)/2.;
 
     // loop over all jets
     for (int j = 0; j < pfjet_n; j++) {
       // correct only jets with pT > 15 GeV
       if (pfjet_pt[j] > 15.) {
 	// match to generated jet
-	// int truth_jet = -1;
 	double sum_truth = 0;
 	for (int t = 0; t < truthjet_n; t++) {
 	  double dR = sqrt(pow(pfjet_eta[j]-truthjet_eta[t], 2) +
 			   pow(DeltaPhi(pfjet_phi[j],truthjet_phi[t]), 2));
 
 	  if (dR < 0.5) {
-	    // if (dpT > 0)
-	    //   WARNING("Analysis::PFJetSmearing() found more than one matching truth jet");
 	    sum_truth += truthjet_pt[t];
-	    // truth_jet = t;
 	  }
 	}
 
@@ -2641,8 +2750,6 @@ void Analysis::PFJetSmearingCalculation()
 	else {
 	  dpt = pfjet_pt[j] - sum_truth;
 	  scale = dpt/pfjet_pt[j];
-	  // if (truth_jet != pfjet_truth[j])
-	  // 	WARNING("Calculated true jet: " << truth_jet << ", from SUSYAna: " << pfjet_truth[j]);
 	  Fill("JER_deltae", dpt);
 	  Fill("JER_deltaepteta", dpt, pfjet_pt[j], pfjet_eta[j]);
 	  Fill("JER_scale", scale);
@@ -2652,3 +2759,25 @@ void Analysis::PFJetSmearingCalculation()
   }
 }
 
+void Analysis::BTagEfficiencyMap() {
+
+  for (int i = 0; i < pfjet_n; i++) {
+    // b-quarks
+    if (pfjet_flav[i] == 5) {
+      Fill("btag_denom_b", pfjet_pt[i], pfjet_eta[i]);
+      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_b", pfjet_pt[i], pfjet_eta[i]);
+    }
+
+    // c-quarks
+    else if (pfjet_flav[i] == 4) {
+      Fill("btag_denom_c", pfjet_pt[i], pfjet_eta[i]);
+      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_c", pfjet_pt[i], pfjet_eta[i]);
+    }
+
+    // light-quarks
+    else {
+      Fill("btag_denom_l", pfjet_pt[i], pfjet_eta[i]);
+      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_l", pfjet_pt[i], pfjet_eta[i]);
+    }    
+  }
+}
