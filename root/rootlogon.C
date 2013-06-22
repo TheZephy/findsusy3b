@@ -22,6 +22,12 @@ void rootlogon () {
   gROOT->LoadMacro(Form("%s/root/tdrstyle.C", getenv("ARASYS")));
   setTDRStyle();
 
+  // set sumw2
+  TH1::SetDefaultSumw2();
+  TH2::SetDefaultSumw2();
+  TH3::SetDefaultSumw2();
+
+
   // load main macros
   gROOT->LoadMacro(Form("%s/root/plot.C+", getenv("ARASYS")));
   gROOT->LoadMacro(Form("%s/root/stat.C+", getenv("ARASYS")));
