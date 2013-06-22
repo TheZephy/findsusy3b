@@ -1,14 +1,26 @@
 #include "BTagging.h"
+#include "TFile.h"
+#include "TH2.h"
 
 #include "Utilities.h"
 
 // Choose Track Counting High Efficiency with working point medium (CVSM)
+// https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
 const double btag_cut = 0.679;
+TH2D * btag_eff_map;
+TH2D * ctag_eff_map;
+TH2D * bmistag_eff_map;
 
-BTagging::BTagging(int seed)
+BTagging::BTagging(const char * EffMapFile, int seed)
 {
   // initialize private random number generator with given seed
   rand_ = new TRandom3(seed);
+
+  // load efficiency maps
+  TFile * f = new TFile(EffMapFile, "READ");
+  btag_eff_map = (TH2D*) f->Get("h2_0_btag_num_b");
+  ctag_eff_map = (TH2D*) f->Get("h2_0_btag_num_c");
+  bmistag_eff_map = (TH2D*) f->Get("h2_0_btag_num_l");
 }
 
 BTagging::~BTagging()
@@ -29,42 +41,43 @@ bool BTagging::isBJet(double btag, int pdgIdPart, double pt, double eta)
   }
   modifyBTagsWithSF(isBTagged, 
 		    pdgIdPart, 
-		    GetBTagScaleFactor(btag),
-		    GetBTagEfficiencyMC(btag),
-		    GetCTagEfficiencyMC(btag),
+		    GetBTagScaleFactor(pt),
+		    GetBTagEfficiency(pt, eta),
+		    GetCTagEfficiency(pt, eta),
 		    GetBMisTagScaleFactor(pt, eta),
 		    GetBMisTagEfficiency(pt, eta)
-    );
+		    );
   return isBTagged;
 }
 
 double BTagging::GetBTagScaleFactor(double pt)
 {
-  return 0.726981*((1.+(0.253238*pt))/(1.+(0.188389*pt)));
+  return (0.938887+(0.00017124*pt))+(-2.76366e-07*(pt*pt));
 }
 
 double BTagging::GetBTagScaleFactorError(double pt)
 {
   float ptmin[] = {20, 30, 40, 50, 60, 70, 80, 100, 120, 160, 210, 260, 320, 400, 500, 600};
   float ptmax[] = {30, 40, 50, 60, 70, 80,100, 120, 160, 210, 260, 320, 400, 500, 600, 800};
-  double SFb_error[] = {
-    0.0554504,
-    0.0209663,
-    0.0207019,
-    0.0230073,
-    0.0208719,
-    0.0200453,
-    0.0264232,
-    0.0240102,
-    0.0229375,
-    0.0184615,
-    0.0216242,
-    0.0248119,
-    0.0465748,
-    0.0474666,
-    0.0718173,
-    0.0717567
+  double  SFb_error[] = {
+    0.0415707,
+    0.0204209,
+    0.0223227,
+    0.0206655,
+    0.0199325,
+    0.0174121,
+    0.0202332,
+    0.0182446,
+    0.0159777,
+    0.0218531,
+    0.0204688,
+    0.0265191,
+    0.0313175,
+    0.0415417,
+    0.0740446,
+    0.0596716
   };
+
   for (unsigned int i = 0; i < sizeof(ptmin)/sizeof(double); i++) {
     if (pt >= ptmin[i] && pt < ptmax[i]) {
       return SFb_error[i];
@@ -81,76 +94,41 @@ double BTagging::GetBTagScaleFactorError(double pt)
   }
 }
 
-double BTagging::GetBMisTagScaleFactor(double pt, double eta, bool finebin)
+double BTagging::GetBMisTagScaleFactor(double pt, double eta)
 {
-  // from https://twiki.cern.ch/twiki/pub/CMS/BtagPOG/SFlightFuncs_Moriond2013.C
+  // from https://twiki.cern.ch/twiki/pub/CMS/BtagPOG/SFlightFuncs_EPS2013.C
   eta = TMath::Abs(eta);
-  if (finebin) {
-    if (eta < 0.8) {
-      return ((1.06238+(0.00198635*pt))+(-4.89082e-06*(pt*pt)))+(3.29312e-09*(pt*(pt*pt)));
-    }
-    else if (eta < 1.6) {
-      return ((1.08048+(0.00110831*pt))+(-2.96189e-06*(pt*pt)))+(2.16266e-09*(pt*(pt*pt)));
-    }
-    else if (eta < 2.4) {
-      return ((1.09145+(0.000687171*pt))+(-2.45054e-06*(pt*pt)))+(1.7844e-09*(pt*(pt*pt)));
-    }
-    else {
-      // same value as for eta < 2.4, but twice the uncertainty
-      return ((1.09145+(0.000687171*pt))+(-2.45054e-06*(pt*pt)))+(1.7844e-09*(pt*(pt*pt)));
-    }
+  if (eta < 0.8) {
+    return ((1.07541+(0.00231827*pt))+(-4.74249e-06*(pt*pt)))+(2.70862e-09*(pt*(pt*pt)));
+  }
+  else if (eta < 1.6) {
+    return ((1.05613+(0.00114031*pt))+(-2.56066e-06*(pt*pt)))+(1.67792e-09*(pt*(pt*pt)));
+  }
+  else if (eta < 2.4) {
+    return ((1.05625+(0.000487231*pt))+(-2.22792e-06*(pt*pt)))+(1.70262e-09*(pt*(pt*pt)));
   }
   else {
-    // has been disabled for 2012 CSVM
-    return ((1.09145+(0.000687171*pt))+(-2.45054e-06*(pt*pt)))+(1.7844e-09*(pt*(pt*pt)));
+    // same value as for eta < 2.4, but twice the uncertainty
+    return ((1.05625+(0.000487231*pt))+(-2.22792e-06*(pt*pt)))+(1.70262e-09*(pt*(pt*pt)));
   }
 }
     
-double BTagging::GetBMisTagEfficiency(double pt, double eta, bool finebin)
+double BTagging::GetBMisTagEfficiency(double pt, double eta)
 {
-  eta = TMath::Abs(eta);
-  if (finebin) {
-    if (eta < 0.8) {
-      return (0.00967751+(2.54564e-05*pt))+(-6.92256e-10*(pt*pt)) * (1.10422 + -0.000523856*pt + 1.14251e-06*pt*pt);
-    }
-    else if (eta < 1.6) {
-      return (0.00974141+(5.09503e-05*pt))+(2.0641e-08*(pt*pt)) * (1.10422 + -0.000523856*pt + 1.14251e-06*pt*pt);
-    }
-    else if (eta < 2.4) {
-      return (0.013595+(0.000104538*pt))+(-1.36087e-08*(pt*pt)) * (1.10422 + -0.000523856*pt + 1.14251e-06*pt*pt);
-    }
-    else {
-      // same value as for eta < 2.4, but twice the uncertainty
-      return (0.013595+(0.000104538*pt))+(-1.36087e-08*(pt*pt)) * (1.10422 + -0.000523856*pt + 1.14251e-06*pt*pt);
-    }
-  }
-  else {
-    // covering full range in eta
-    return (0.0113428+(5.18983e-05*pt))+(-2.59881e-08*(pt*pt)) * (1.10422 + -0.000523856*pt + 1.14251e-06*pt*pt);
-  }
+  if (pt > 800.) pt = 800.;
+  return bmistag_eff_map->GetBinContent(bmistag_eff_map->GetXaxis()->FindBin(pt), bmistag_eff_map->GetYaxis()->FindBin(eta));
 }
 
-double BTagging::GetBTagEfficiencyData(double btag)
+double BTagging::GetBTagEfficiency(double pt, double eta)
 {
-  return -3.67153247396e-07*btag*btag*btag*btag +  -2.81599797034e-05*btag*btag*btag
-    + 0.00293190163243*btag*btag +  -0.0849600849778*btag +  0.928524440715;
+  if (pt > 800.) pt = 800.;
+  return btag_eff_map->GetBinContent(btag_eff_map->GetXaxis()->FindBin(pt), btag_eff_map->GetYaxis()->FindBin(eta));
 }
 
-double BTagging::GetBTagEfficiencyDataError(double btag)
+double BTagging::GetCTagEfficiency(double pt, double eta)
 {
-  return 3.03337430722e-06*btag*btag*btag*btag + -0.000171604835897*btag*btag*btag
-    + 0.00474711667943*btag*btag + -0.0929933040514*btag + 0.978347619293
-    - GetBTagEfficiencyDataError(btag);
-}
-
-double BTagging::GetBTagEfficiencyMC(double btag)
-{
-  return -1.73338329789*btag*btag*btag*btag +  1.26161794785*btag*btag*btag +  0.784721653518*btag*btag +  -1.03328577451*btag +  1.04305075822;
-}
-
-double BTagging::GetCTagEfficiencyMC(double btag)
-{
-  return -1.5734604211*btag*btag*btag*btag +  1.52798999269*btag*btag*btag +  0.866697059943*btag*btag +  -1.66657942274*btag +  0.780639301724;
+  if (pt > 800.) pt = 800.;
+  return ctag_eff_map->GetBinContent(ctag_eff_map->GetXaxis()->FindBin(pt), ctag_eff_map->GetYaxis()->FindBin(eta));
 }
 
 void BTagging::modifyBTagsWithSF(bool & isBTagged, int pdgIdPart,
