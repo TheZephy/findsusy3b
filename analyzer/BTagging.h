@@ -10,11 +10,11 @@
 class BTagging 
 {
 public: 
-  BTagging(const char * EffMapFile, int seed = 0);
+  BTagging(const char * EffMapFile);
   ~BTagging();
 
   // modify the b-tag of the jet according to its pt and eta
-  bool isBJet(double btag, int pdgIdPart, double pt, double eta);
+  bool isBJet(double btag, int pdgIdPart, double pt, double eta, double phi);
 
 private:
   double GetBTagScaleFactor(double pt);
