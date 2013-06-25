@@ -54,7 +54,7 @@ Bool_t check_root_file(const char * fileName)
 
 Analysis::Analysis(TTree & inputTree, TTree & outputTree, CfgParser & cfgFile)
   : TreeContent(& inputTree) , fInputTree(inputTree), fOutputTree(outputTree), fCfgFile(cfgFile),
-    fBTagging(gSystem->ExpandPathName(fCfgFile.entries["btag"].s["BTAG_EffMapFile"].c_str()), 35535)
+    fBTagging(gSystem->ExpandPathName(fCfgFile.entries["btag"].s["BTAG_EffMapFile"].c_str()))
 {
   //////////////////////////////////////////////////////////////////////
   // Configuration options
@@ -699,10 +699,13 @@ void Analysis::TriggerMatchingComparison(int muonIterator, const char * tag) {
       for (unsigned int k = 0; k < matchLength; k++) {
 	if (match[k] && k != i) onlyMatch = false;
       }
-      if (onlyMatch) Fill(Form("%s_matched", tag), matchLength+i);
+      if (onlyMatch) Fill(Form("%s_matched", tag), matchLength+1+i);
 
     } else {
-      allMatch = false;
+      // IF CLAUSE NECESSARY DUE TO 2 NAMES FOR 1 TRIGGER
+      if ((i != 0 && match[1]) ||
+	  (i != 1 && match[0]))
+	allMatch = false;
     }
   }
 
@@ -1798,7 +1801,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     bool tagged = fBTagging.isBJet(pfjet_btag[jj][6],
       				   pfjet_flav[jj],
       				   pfjet_pt[jj],
-      				   pfjet_eta[jj]);
+      				   pfjet_eta[jj],
+				   pfjet_phi[jj]);
     Fill("isbtag", pfjet_btag[jj][6], tagged ? 1 : 0);
     if (tagged)
       fIsBTagged = true;
@@ -2067,6 +2071,7 @@ void Analysis::CreateHistograms()
 	      50, 0, 100, 50, -5, 5);
 
   // PF met rescaling for MC
+  CreateHisto("seed", "seed for gaussian smearing of pfjets", 100, 0, 1);
   CreateHisto("pfmet_scaled", "scale factor f:PFMET@GeV", 500, 0, 500, 41, -0.005, 0.405);
   CreateHisto("JER_randomsf", "rescaling factors; random", 600, -2, 4);
   CreateHisto("JER_dptsf", "rescaling factors; from dpt", 600, -2, 4);
@@ -2075,12 +2080,12 @@ void Analysis::CreateHistograms()
   CreateHisto("JER_scale", "(reco jet E - true jet E)/true jet E", 100, -2, 2);
 
   // B-Tagging
-  CreateHisto("btag_denom_b", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
-  CreateHisto("btag_denom_c", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
-  CreateHisto("btag_denom_l", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
-  CreateHisto("btag_num_b", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
-  CreateHisto("btag_num_c", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
-  CreateHisto("btag_num_l", "#eta:p_{T} [GeV]", 80, 0., 800., 10, -5., 5.);
+  CreateHisto("btag_denom_b", "#eta:p_{T} [GeV]", 80, 0., 800., 5, 0., 5.);
+  CreateHisto("btag_denom_c", "#eta:p_{T} [GeV]", 80, 0., 800., 5, 0., 5.);
+  CreateHisto("btag_denom_l", "#eta:p_{T} [GeV]", 80, 0., 800., 5, 0., 5.);
+  CreateHisto("btag_num_b", "#eta:p_{T} [GeV]", 80, 0., 800., 5, 0., 5.);
+  CreateHisto("btag_num_c", "#eta:p_{T} [GeV]", 80, 0., 800., 5, 0., 5.);
+  CreateHisto("btag_num_l", "#eta:p_{T} [GeV]", 80, 0., 800., 5, 0., 5.);
 
   // Reskimming
   CreateHisto("bSkim_muo_n", "Number of muons", 10, -0.5, 9.5);
@@ -2158,7 +2163,7 @@ void Analysis::CreateHistograms()
   CreateHisto("relIsoInJet", "muon relative isolation inside of jet", 200, 0, 10);
   CreateHisto("nMuon_matched", "muon trigger matching", 10, -0.5, 9.5);
 
-  CreateHisto("def_matched", "muon trigger matching", 5, -0.5, 7.5);
+  CreateHisto("def_matched", "muon trigger matching", 8, -0.5, 7.5);
   CreateHisto("dycut_matched", "muon trigger matching", 5, -0.5, 4.5);
   CreateHisto("CR1_matched", "muon trigger matching", 5, -0.5, 4.5);
 
@@ -2279,10 +2284,10 @@ void Analysis::CreateHistograms()
   CreateHisto("DeltaPhi", "#Delta#phi(#mu_{1}, gaugino)", 315, 0., 3.15);
   CreateHisto("m_mumu", "m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
   CreateHisto("m_mumu_precut", "m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 25, 0, 1000);
-  CreateHisto("m_gaugino_precut", "gaugino mass m(#mu_{1},j_{1},j_{2})", 25, 0, 1000);
-  CreateHisto("m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
-  CreateHisto("m_smuon_precut", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
+  CreateHisto("m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 500, 0, 1000);
+  CreateHisto("m_gaugino_precut", "gaugino mass m(#mu_{1},j_{1},j_{2})", 500, 0, 1000);
+  CreateHisto("m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 500, 0, 2000);
+  CreateHisto("m_smuon_precut", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 500, 0, 2000);
   CreateHisto("muo_n_precut", "Number of muons", 20, -0.5, 19.5);
   CreateHisto("m_mumu_zpeak", "Z-Peak m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
 
@@ -2293,11 +2298,11 @@ void Analysis::CreateHistograms()
   CreateHisto("CR4_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 25, 0, 1000);
   CreateHisto("CR4_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
   CreateHisto("CR5_m_mumu", "CR5 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("CR5_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 25, 0, 1000);
-  CreateHisto("CR5_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
+  CreateHisto("CR5_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 500, 0, 1000);
+  CreateHisto("CR5_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 500, 0, 2000);
   CreateHisto("CR6_m_mumu", "CR6 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("CR6_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 25, 0, 1000);
-  CreateHisto("CR6_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
+  CreateHisto("CR6_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 500, 0, 1000);
+  CreateHisto("CR6_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 500, 0, 2000);
 
   CreateHisto("1st_btag", "highest btag value from jets", 100, 0, 1);
   CreateHisto("2nd_btag", "2nd highest btag value from jets", 100, 0, 1);
@@ -2681,6 +2686,9 @@ void Analysis::PFJetSmearing()
       double scale = 0;
       if (sum_truth == 0) {
 	// no truth jets found
+	UInt_t seed = UInt_t (TMath::Abs(pfjet_phi[j])/TMath::Pi()*100000) % 10000;
+	Fill("seed", TMath::Abs(pfjet_phi[j])/TMath::Pi());
+	gRandom->SetSeed(seed);
 	dpt = gRandom->Gaus(fJER_center, TMath::Sqrt( TMath::Power(GetJERScale(pfjet_eta[j]),2) - 1 ) * fJER_smear);
 	scale = 1 + dpt/pfjet_pt[j];
 	Fill("JER_randomsf", scale);
@@ -2760,24 +2768,25 @@ void Analysis::PFJetSmearingCalculation()
 }
 
 void Analysis::BTagEfficiencyMap() {
-
   for (int i = 0; i < pfjet_n; i++) {
+    int flav = TMath::Abs(pfjet_flav[i]);
+    double eta = TMath::Abs(pfjet_eta[i]);
     // b-quarks
-    if (pfjet_flav[i] == 5) {
-      Fill("btag_denom_b", pfjet_pt[i], pfjet_eta[i]);
-      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_b", pfjet_pt[i], pfjet_eta[i]);
+    if (flav == 5) {
+      Fill("btag_denom_b", pfjet_pt[i], eta);
+      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_b", pfjet_pt[i], eta);
     }
 
     // c-quarks
-    else if (pfjet_flav[i] == 4) {
-      Fill("btag_denom_c", pfjet_pt[i], pfjet_eta[i]);
-      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_c", pfjet_pt[i], pfjet_eta[i]);
+    else if (flav == 4) {
+      Fill("btag_denom_c", pfjet_pt[i], eta);
+      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_c", pfjet_pt[i], eta);
     }
 
     // light-quarks
-    else {
-      Fill("btag_denom_l", pfjet_pt[i], pfjet_eta[i]);
-      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_l", pfjet_pt[i], pfjet_eta[i]);
-    }    
+    else if ((flav >= 1 && flav <= 3) ||  flav == 21) {
+      Fill("btag_denom_l", pfjet_pt[i], eta);
+      if (pfjet_btag[i][6] >= fBTAG_threshold) Fill("btag_num_l", pfjet_pt[i], eta);
+    }
   }
 }
