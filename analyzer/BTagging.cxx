@@ -11,10 +11,10 @@ TH2D * btag_eff_map;
 TH2D * ctag_eff_map;
 TH2D * bmistag_eff_map;
 
-BTagging::BTagging(const char * EffMapFile, int seed)
+BTagging::BTagging(const char * EffMapFile)
 {
   // initialize private random number generator with given seed
-  rand_ = new TRandom3(seed);
+  rand_ = new TRandom3(35535);
 
   // load efficiency maps
   TFile * f = new TFile(EffMapFile, "READ");
@@ -29,10 +29,12 @@ BTagging::~BTagging()
   delete rand_;
 }
 
-bool BTagging::isBJet(double btag, int pdgIdPart, double pt, double eta)
+bool BTagging::isBJet(double btag, int pdgIdPart, double pt, double eta, double phi)
 {
   eta = TMath::Abs(eta);
   pdgIdPart = TMath::Abs(pdgIdPart);
+  UInt_t seed = UInt_t(TMath::Abs(phi)/TMath::Pi()*100000) % 10000;
+  rand_->SetSeed(seed);
   bool isBTagged = (btag > btag_cut);
   if (eta > 2.4) {
     WARNING("jet properties out of allowed range in BTagging::isBJet(): pt = " << pt 
@@ -54,6 +56,7 @@ double BTagging::GetBTagScaleFactor(double pt)
 {
   return (0.938887+(0.00017124*pt))+(-2.76366e-07*(pt*pt));
 }
+
 
 double BTagging::GetBTagScaleFactorError(double pt)
 {
@@ -172,7 +175,7 @@ bool BTagging::applySF(bool isBTagged, double Btag_SF, double Btag_eff)
   if(Btag_SF > 1){  // use this if SF>1
     if( !isBTagged ) {
       // fraction of jets that need to be upgraded
-      double mistagPercent = (1.0 - Btag_SF) / (1.0 - (Btag_SF/Btag_eff) );
+      double mistagPercent = (1.0 - Btag_SF) / (1.0 - (1.0/Btag_eff) );
 
       // upgrade to tagged
       if( coin < mistagPercent ) {
