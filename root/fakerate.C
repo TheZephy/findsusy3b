@@ -137,7 +137,7 @@ void replace_with_average(TH2D * histo, int i, int j)
   histo->SetBinContent(i, j, average);
 }
 
-void fix_2d_histo(TH2D * hTight2, TH2D * hLoose2)
+void check_2d_histo(TH2D * hTight2, TH2D * hLoose2)
 {
   for (Int_t i = 1;  i < hTight2->GetNbinsX()+1; i++) {
     for (Int_t j = 1; j < hTight2->GetNbinsY()+1; j++) {
@@ -147,13 +147,13 @@ void fix_2d_histo(TH2D * hTight2, TH2D * hLoose2)
       if (nLoose < 0) {
 	ERROR("nLoose < 0");
 	INFO("nLoose(" << get_bin_edges(hLoose2, i, j) << " ) =" << nLoose);
-	replace_with_average(hLoose2, i, j);
+	//replace_with_average(hLoose2, i, j);
       }
       if (nLoose < nTight || nTight < 0) {
 	ERROR("nLoose < nTight || nTight < 0");
 	INFO("nLoose(" << get_bin_edges(hLoose2, i, j) << " ) =" << nLoose);
 	INFO("nTight(" << get_bin_edges(hTight2, i, j) << " ) =" << nTight);
-	replace_with_average(hTight2, i, j);
+	//replace_with_average(hTight2, i, j);
       }
     }
   }  
@@ -214,18 +214,14 @@ TH1D * get_subtracted_tight_loose_ratio(bool save, bool draw)
     double nLoose = hLoose3_back->Integral();
     if (nTight != 0 || nLoose != 0) {
       INFO(gProcess[j].fname << ": subtracting " << nTight << " tight and " 
-	   << nLoose << " loose events");
-      INFO("Testing background histograms");
-      check_3d_histo(hTight3_back, hLoose3_back, true);
+  	   << nLoose << " loose events");
       hTight3_data->Add(hTight3_back, -1.);
       nTightAfter -= nTight;
       hLoose3_data->Add(hLoose3_back, -1.);
       nLooseAfter -= nLoose;
-      INFO("Testing subtracted data histograms");
-      check_3d_histo(hTight3_data, hLoose3_data, false);
     }
     else {
-      ERROR("Histograms not found");
+      WARNING(gProcess[j].fname << " is empty/missing");
     }
   }
   // output some statistics
@@ -234,41 +230,41 @@ TH1D * get_subtracted_tight_loose_ratio(bool save, bool draw)
   INFO("Histo: Tight muons: " << hTight3_data->Integral() 
        << ", loose muons: " << hLoose3_data->Integral());
 
-  // compute 3D ratio
-  TH3D * hRatio3 = new TH3D(*hTight3_data);
-  hRatio3->SetDirectory(0);
-  hRatio3->SetName("hRatio3");
-  hRatio3->SetTitle("Tight/Loose ratio (T/L) (3D)");
+  // // compute 3D ratio
+  // TH3D * hRatio3 = new TH3D(*hTight3_data);
+  // hRatio3->SetDirectory(0);
+  // hRatio3->SetName("hRatio3");
+  // hRatio3->SetTitle("Tight/Loose ratio (T/L) (3D)");
 
-  // divide with binomial errors
-  hRatio3->Divide(hTight3_data, hLoose3_data, 1., 1., "B");
-  // some sanity checks
-  for (Int_t i = 1;  i < hRatio3->GetNbinsX()+1; i++) {
-    for (Int_t j = 1; j < hRatio3->GetNbinsY()+1; j++) {
-      for (Int_t k = 1; k < hRatio3->GetNbinsZ()+1; k++) {
-	Double_t nLoose = hLoose3_data->GetBinContent(i, j, k);
-	Double_t nTight = hTight3_data->GetBinContent(i, j, k);
-	Double_t nRatio = hRatio3->GetBinContent(i, j, k);
-	Double_t error  = hRatio3->GetBinError(i, j, k);
+  // // divide with binomial errors
+  // hRatio3->Divide(hTight3_data, hLoose3_data, 1., 1., "B");
+  // // some sanity checks
+  // for (Int_t i = 1;  i < hRatio3->GetNbinsX()+1; i++) {
+  //   for (Int_t j = 1; j < hRatio3->GetNbinsY()+1; j++) {
+  //     for (Int_t k = 1; k < hRatio3->GetNbinsZ()+1; k++) {
+  // 	Double_t nLoose = hLoose3_data->GetBinContent(i, j, k);
+  // 	Double_t nTight = hTight3_data->GetBinContent(i, j, k);
+  // 	Double_t nRatio = hRatio3->GetBinContent(i, j, k);
+  // 	Double_t error  = hRatio3->GetBinError(i, j, k);
 
-	if (nLoose < nTight || nLoose < 0) {
-	  cerr << "ERR: nLoose is wrong in your histogram" << endl;
-	  cout << "INFO: nLoose(" << get_bin_edges(hRatio3, i, j, k) << ") " << nLoose << endl;
-	  cout << "INFO: nTight(" << get_bin_edges(hRatio3, i, j, k) << ") " << nTight << endl;
-	}
-	if (nLoose != 0 && nRatio != nTight/nLoose) {
-	  cerr << "ERR: ROOT calculation went wrong" << endl;
-	}
-	if (nRatio < 0 || nRatio >= 1.) {
-	  cerr << "ERR: Found unreasonable values for T/L ratio" << endl;
-	}
-	if (nRatio != 0) {
-	  cout << "INFO: T/L (" << get_bin_edges(hRatio3, i, j, k) << ") " 
-	       << nRatio << " +- " << error << endl;
-	}
-      }
-    }
-  }
+  // 	if (nLoose < nTight || nLoose < 0) {
+  // 	  cerr << "ERR: nLoose is wrong in your histogram" << endl;
+  // 	  cout << "INFO: nLoose(" << get_bin_edges(hRatio3, i, j, k) << ") " << nLoose << endl;
+  // 	  cout << "INFO: nTight(" << get_bin_edges(hRatio3, i, j, k) << ") " << nTight << endl;
+  // 	}
+  // 	if (nLoose != 0 && nRatio != nTight/nLoose) {
+  // 	  cerr << "ERR: ROOT calculation went wrong" << endl;
+  // 	}
+  // 	if (nRatio < 0 || nRatio >= 1.) {
+  // 	  cerr << "ERR: Found unreasonable values for T/L ratio" << endl;
+  // 	}
+  // 	if (nRatio != 0) {
+  // 	  cout << "INFO: T/L (" << get_bin_edges(hRatio3, i, j, k) << ") " 
+  // 	       << nRatio << " +- " << error << endl;
+  // 	}
+  //     }
+  //   }
+  // }
 
   // now work in 2D-Projection (NUF = do not project underflow, NOF = ... overflow)
   TH2D * hTight2 = (TH2D *) hTight3_data->Project3D("yxNUFNOF");
@@ -285,8 +281,10 @@ TH1D * get_subtracted_tight_loose_ratio(bool save, bool draw)
 	 << ", 3d integral = " << hLoose3_data->Integral());
     INFO("integral difference: " << hLoose2->Integral() - hLoose3_data->Integral());
   }
-  // fix 2d histogram for insane values
-  fix_2d_histo(hTight2, hLoose2);
+  // fix 2d histogram for insane Values
+  hTight2->Smooth();
+  hLoose2->Smooth();
+  check_2d_histo(hTight2, hLoose2);
 
   // compute 2D ratio
   TH2D * hRatio2 = new TH2D(*hTight2);
@@ -346,7 +344,7 @@ TH1D * get_subtracted_tight_loose_ratio(bool save, bool draw)
 	ERROR("Found unreasonable values for T/L ratio");
 	INFO("T/L (" << get_bin_edges(hRatio2, i, j) << ") " 
 	     << nRatio << " +- " << error);
-	replace_with_average(hRatio2, i, j);
+	//replace_with_average(hRatio2, i, j);
       }
       if (nRatio != 0) {
 	DEBUG("T/L (" << get_bin_edges(hRatio2, i, j) << ") " 
@@ -397,7 +395,7 @@ TH1D * get_subtracted_tight_loose_ratio(bool save, bool draw)
     }
     hRatio1->Write();
     hRatio2->Write();
-    hRatio3->Write();
+    // hRatio3->Write();
     fakeRateFile->Close();
     delete fakeRateFile;
   }
