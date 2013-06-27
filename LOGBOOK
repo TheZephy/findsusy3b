@@ -26,7 +26,11 @@ Fullrun43: new ttbar sample, TT_C10...
 Fullrun44: fixed 2 leading jet to 2 leading btag jets, and new TT_C10 efficiency maps
 Fullrun45: JER_calc = true run
 Fullrun46: Used JER_center (turned out to be bullshit)
-Fullrun47: Fixed B-Tagging algorithm (upgrading from L->M, now properly from veto->tag), absolute value of eta for eff map, changed seeding for TRandom
+Fullrun47: Fixed B-Tagging algorithm (upgrading from L->M, now properly from veto->tag), absolute value of eta and flavour for eff map, changed seeding for TRandom
+Fullrun48: Rerun with new efficiency map
+Fullrun49: Slight changes to histogram sizes
+Fullrun50: Replaced faulty pileup reweighting root-file
+Fullrun51: Rerun with updated efficiency maps + fake estimates
 
 TODO:
 - Fix trigger selection to take one OR multiple trigger names
