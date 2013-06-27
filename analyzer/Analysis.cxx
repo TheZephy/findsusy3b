@@ -1189,12 +1189,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     WARNING("Initial weights are not 1.");
     fFirstWarnWeight = false;
   }
-  if ( fSample == "ttjets" ) {
-    // https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMCatNLOInterface
-    global_weight = (global_weight > 0.) ? 1. : -1.;
-  } else {
-    global_weight = 1.;
-  }
+  global_weight = 1.;
 
   Fill("cutflow", "weight");
   DEBUG("cutflow " << "weight");
@@ -1438,13 +1433,9 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
       Fill("MJ_EE", muo_E[m], pfjet_E[jets[jet_min]]);
       // use MC to help if there is a signal particle close
       if (fIsSignal) {
-	double min_mu_dR = TMath::Min(
-				      mu.DeltaR(*fSigMu0), mu.DeltaR(*fSigMu1)
-				      );
+	double min_mu_dR = TMath::Min(mu.DeltaR(*fSigMu0), mu.DeltaR(*fSigMu1));
 	Fill("MJ_mu_dR", min_mu_dR);
-	double min_jet_dR = TMath::Min(
-				       mu.DeltaR(*fSigJet0), mu.DeltaR(*fSigMu1)
-				       );
+	double min_jet_dR = TMath::Min(mu.DeltaR(*fSigJet0), mu.DeltaR(*fSigMu1));
 	Fill("MJ_jet_dR", min_jet_dR);
 	Fill("MJ_dR", min_mu_dR, min_jet_dR);
       }
@@ -1717,11 +1708,15 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   Fill("mumudz", fabs(muo_dzTk[fMuoId[0]]-muo_dzTk[fMuoId[1]]));
   if (muo_pt[fMuoId[0]] <= 20. ||
       muo_pt[fMuoId[1]] <= 15. ||
-      muon_dR[0] < 0.4 ||
-      muon_dR[1] < 0.4 ||
       fabs(muo_dzTk[fMuoId[0]]-muo_dzTk[fMuoId[1]]) > 0.08
       ) {
-    return;
+    double minMuon_dR = TMath::Min(muon_dR[0], muon_dR[1]);
+    double maxMuon_dR = TMath::Max(muon_dR[0], muon_dR[1]);
+    Fill("minMuon_dR", minMuon_dR);
+    Fill("maxMuon_dR", maxMuon_dR);
+    if (muon_dR[0] < 0.4 ||
+	muon_dR[1] < 0.4)
+      return;
   }
   Fill("cutflow", "muonID");
   DEBUG("cutflow " << "muonID");
@@ -2222,9 +2217,9 @@ void Analysis::CreateHistograms()
 
   // Tight-to-loose ratio
   CreateHisto("TightMuons", "pt_{#mu} @GeV:#eta_{#mu}:Leading jet pt@GeV",
-	      11, 15, 100, 5, 0, 2.5, 6, 40, 100);
+	      8, 15, 95, 5, 0, 2.5, 6, 40, 100);
   CreateHisto("LooseMuons", "pt_{#mu} @GeV:#eta_{#mu}:Leading jet pt@GeV",
-	      11, 15, 100, 5, 0, 2.5, 6, 40, 100);
+	      8, 15, 95, 5, 0, 2.5, 6, 40, 100);
 
   CreateHisto("nTL_met", "MET@GeV", 100, 0, 500);
   CreateHisto("nTL_jetpt", "leading jet pt@GeV", 150, 0, 1500);
@@ -2267,6 +2262,8 @@ void Analysis::CreateHistograms()
   CreateHisto("Muon_pt0", "#mu p_{T}:#mu p_{T}@GeV", 1000, 0, 1000);
   CreateHisto("Muon_pt1", "#mu p_{T}:#mu p_{T}@GeV", 1000, 0, 1000);
   CreateHisto("Muon_pt", "#mu p_{T}:#mu p_{T}@GeV", 20, 0, 100, 20, 0, 100);
+  CreateHisto("minMuon_dR", "Smaller dR of the 2 muons", 100, 0, 5);
+  CreateHisto("maxMuon_dR", "Larger dR of the 2 muons", 100, 0, 5);
   CreateHisto("Jet_pt0", "jet p_{T}:jet p_{T}@GeV", 1000, 0, 1000);
   CreateHisto("Jet_pt1", "jet p_{T}:jet p_{T}@GeV", 1000, 0, 1000);
   CreateHisto("Jet_pt", "jet p_{T}:jet p_{T}@GeV", 20, 0, 100, 20, 0, 100);
@@ -2278,7 +2275,7 @@ void Analysis::CreateHistograms()
   CreateHisto("met3_met7", "met7@GeV:met3@GeV", 40, 0, 200, 40, 0, 200);
   CreateHisto("met6_met7", "met7@GeV:met6@GeV", 40, 0, 200, 40, 0, 200);
   CreateHisto("Muon_charge", "muon charge:muon charge", 3, -1.5, 1.5, 3, -1.5, 1.5);
-  CreateHisto("Muon_ch", "muon charge:muon charge", 2, -1.5, 0.5);
+  CreateHisto("Muon_ch", "muon charge:muon charge", 3, -1.5, 1.5);
 
   // create individual histograms
   CreateHisto("DeltaPhi", "#Delta#phi(#mu_{1}, gaugino)", 315, 0., 3.15);
@@ -2295,8 +2292,8 @@ void Analysis::CreateHistograms()
   CreateHisto("CR2_m_mumu", "CR2 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
   CreateHisto("CR3_m_mumu", "CR3 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
   CreateHisto("CR4_m_mumu", "CR4 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("CR4_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 25, 0, 1000);
-  CreateHisto("CR4_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
+  CreateHisto("CR4_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 500, 0, 1000);
+  CreateHisto("CR4_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 500, 0, 2000);
   CreateHisto("CR5_m_mumu", "CR5 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
   CreateHisto("CR5_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 500, 0, 1000);
   CreateHisto("CR5_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 500, 0, 2000);
@@ -2319,8 +2316,8 @@ void Analysis::CreateHistograms()
 
   // after btag cut
   CreateHisto("btag_m_mumu", "m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("btag_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 25, 0, 1000);
-  CreateHisto("btag_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 100, 0, 2000);
+  CreateHisto("btag_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})", 500, 0, 1000);
+  CreateHisto("btag_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})", 500, 0, 2000);
   CreateHisto("btag_m_smu_chi", "m(#chi): m(#tilde{#mu})", 110, 0, 2200, 25, 0, 500);
   CreateHisto("btag_ht", "HT@GeV", 100, 0, 500);
   CreateHisto("btag_jjmm_m", "smuon mass m(#mu_{0},#mu_{1},jets)", nMax, bins, nMax, bins);
@@ -2580,9 +2577,9 @@ double Analysis::GetFakeRate(double muopt, double eta, double jetpt)
     else
       THROW("unknown fake rate method: " + fFakeRateMethod);
   }
-  if (muopt > 100) {
+  if (muopt > 95) {
     if (fFakeRateMethod == "lastbin") {
-      muopt = 99.99;
+      muopt = 94.99;
     }
     else if (fFakeRateMethod == "zero") {
       return 0;
