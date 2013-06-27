@@ -57,8 +57,8 @@ Batch submission of default job, creation of FakeRate file, submission of fake r
 
     # Create descendent configuration file (singlefake)
     repMap = { }
-    repMap["AnalysisType: default"] = "AnalysisType: singlefake"
-    repMap["FakeRateFile: FakeRate.root"] = "FakeRateFile: FakeRate_%s.root" % ( basename )
+    repMap["AnalysisType = \"default\""] = "AnalysisType = \"singlefake\""
+    repMap["FakeRateFile = \"FakeRate.root\""] = "FakeRateFile = \"FakeRate_%s.root\"" % ( basename )
     destination = basepath+"_singlefake.cfg"
     ara.create_config_file(templateFileName, repMap, destination)
 
@@ -66,8 +66,8 @@ Batch submission of default job, creation of FakeRate file, submission of fake r
     os.system("submit.py -a %s_singlefake" % basename)
 
     # Create descendent configuration file (doublefake)
-    repMap["AnalysisType: default"] = "AnalysisType: doublefake"
-    repMap["FakeRateFile: FakeRate.root"] = "FakeRateFile: FakeRate_%s.root" % ( basename )
+    repMap["AnalysisType = \"default\""] = "AnalysisType = \"doublefake\""
+    repMap["FakeRateFile = \"FakeRate.root\""] = "FakeRateFile = \"FakeRate_%s.root\"" % ( basename )
     destination = basepath+"_doublefake.cfg"
     ara.create_config_file(templateFileName, repMap, destination)
 
