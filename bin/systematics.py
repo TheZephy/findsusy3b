@@ -5,25 +5,31 @@ import ara
 
 # define systematics jobs
 
+# mydict = eval("""
+# { 
+#   "LooseMuonRelIso" : 
+#   { 
+#     "default" : "0.5", 
+#     "syst" : ( "0.2", "0.4", "0.8", "1.0" )
+#   },
+#   "TL_jetpt_min" :
+#   {
+#     "default" : "50.",
+#     "syst" : ( "40.", "60.", "70." )
+#   },
+# }
+# """)
+
 mydict = eval("""
 { 
-  "LooseMuonRelIso" : 
+  "PileupDataFile_2012" : 
   { 
-    "default" : "2.0", 
-    "syst" : ( "0.5", "1.0", "1.5", "2.5" )
+    "default" : '"histAllData12.root"', 
+    "syst" : ( '"UPdata12.root"', '"DOWNdata12.root"' )
   },
-  "TL_jetpt_min" :
-  {
-    "default" : "50.",
-    "syst" : ( "40.", "60.", "70." )
-  },
-  "TL_mt_max" :
-  {
-    "default" : "40.",
-    "syst" : ( "30.", "50." )
-  }
 }
 """)
+
 
 def create_and_submit_jobs(template, replacements, syst, value, basename):
     """Create configuration file "destination" by replacing the words 
@@ -70,15 +76,15 @@ configuration files and submits and collects the jobs."""
         repMap = { }
         # Switch off writing tree contents to file, not necessary for systematics,
         # just taking too much disk space
-        repMap["FillTree: true"] = "FillTree: false"
-        search = syst+': '+mydict[syst]["default"]
+        repMap["FillTree = true"] = "FillTree = false"
+        search = syst+' = '+mydict[syst]["default"]
         if isinstance(mydict[syst]["syst"], tuple):
             for value in mydict[syst]["syst"]:
-                repMap[search] = syst+': '+value
+                repMap[search] = syst+' = '+value
                 create_and_submit_jobs(templateFileName, repMap, syst, value, basename)
         else:
             value = mydict[syst]["syst"]
-            repMap[search] = syst+': '+value
+            repMap[search] = syst+' = '+value
             create_and_submit_jobs(templateFileName, repMap, syst, value, basename)
         
 ######################################################################
