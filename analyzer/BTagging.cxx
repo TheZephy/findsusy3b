@@ -1,15 +1,11 @@
 #include "BTagging.h"
 #include "TFile.h"
-#include "TH2.h"
 
 #include "Utilities.h"
 
 // Choose Track Counting High Efficiency with working point medium (CVSM)
 // https://twiki.cern.ch/twiki/bin/viewauth/CMS/BTagPerformanceOP
 const double btag_cut = 0.679;
-TH2D * btag_eff_map;
-TH2D * ctag_eff_map;
-TH2D * bmistag_eff_map;
 
 BTagging::BTagging(const char * EffMapFile)
 {
@@ -41,9 +37,10 @@ bool BTagging::isBJet(double btag, int pdgIdPart, double pt, double eta, double 
 	    << ", eta = " << eta);
     return isBTagged;
   }
-  modifyBTagsWithSF(isBTagged, 
-		    pdgIdPart, 
+  modifyBTagsWithSF(isBTagged,
+		    pdgIdPart,
 		    GetBTagScaleFactor(pt),
+		    GetBTagScaleFactorError(pt),
 		    GetBTagEfficiency(pt, eta),
 		    GetCTagEfficiency(pt, eta),
 		    GetBMisTagScaleFactor(pt, eta),
@@ -102,20 +99,44 @@ double BTagging::GetBMisTagScaleFactor(double pt, double eta)
   // from https://twiki.cern.ch/twiki/pub/CMS/BtagPOG/SFlightFuncs_EPS2013.C
   eta = TMath::Abs(eta);
   if (eta < 0.8) {
+    if (systematic == "up") {
+      return ((1.18638+(0.00314148*pt))+(-6.68993e-06*(pt*pt)))+(3.89288e-09*(pt*(pt*pt)));
+    } else if (systematic == "down") {
+      return ((0.964527+(0.00149055*pt))+(-2.78338e-06*(pt*pt)))+(1.51771e-09*(pt*(pt*pt)));
+    }
+
     return ((1.07541+(0.00231827*pt))+(-4.74249e-06*(pt*pt)))+(2.70862e-09*(pt*(pt*pt)));
   }
   else if (eta < 1.6) {
+    if (systematic == "up") {
+      return ((1.16624+(0.00151884*pt))+(-3.59041e-06*(pt*pt)))+(2.38681e-09*(pt*(pt*pt)));
+    } else if (systematic == "down") {
+      return ((0.946051+(0.000759584*pt))+(-1.52491e-06*(pt*pt)))+(9.65822e-10*(pt*(pt*pt)));
+    }
+
     return ((1.05613+(0.00114031*pt))+(-2.56066e-06*(pt*pt)))+(1.67792e-09*(pt*(pt*pt)));
   }
   else if (eta < 2.4) {
+    if (systematic == "up") {
+      return ((1.15575+(0.000693344*pt))+(-3.02661e-06*(pt*pt)))+(2.39752e-09*(pt*(pt*pt)));
+    } else if (systematic == "down") {
+      return ((0.956736+(0.000280197*pt))+(-1.42739e-06*(pt*pt)))+(1.0085e-09*(pt*(pt*pt)));
+    }
+
     return ((1.05625+(0.000487231*pt))+(-2.22792e-06*(pt*pt)))+(1.70262e-09*(pt*(pt*pt)));
   }
   else {
     // same value as for eta < 2.4, but twice the uncertainty
+    if (systematic == "up") {
+      return ((1.15575+(0.000693344*pt))+(-3.02661e-06*(pt*pt)))+(2.39752e-09*(pt*(pt*pt)));
+    } else if (systematic == "down") {
+      return ((0.956736+(0.000280197*pt))+(-1.42739e-06*(pt*pt)))+(1.0085e-09*(pt*(pt*pt)));
+    }
+
     return ((1.05625+(0.000487231*pt))+(-2.22792e-06*(pt*pt)))+(1.70262e-09*(pt*(pt*pt)));
   }
 }
-    
+
 double BTagging::GetBMisTagEfficiency(double pt, double eta)
 {
   if (pt > 800.) pt = 800.;
@@ -135,11 +156,16 @@ double BTagging::GetCTagEfficiency(double pt, double eta)
 }
 
 void BTagging::modifyBTagsWithSF(bool & isBTagged, int pdgIdPart,
-				 double Btag_SF, double Btag_eff, double Ctag_eff,
+				 double Btag_SF, double Btag_SFerr, double Btag_eff, double Ctag_eff,
 				 double Bmistag_SF, double Bmistag_eff)
 {
   // assume no modification
   pdgIdPart = TMath::Abs(pdgIdPart);
+  if (systematic == "up") {
+    Btag_SF += Btag_SFerr;
+  } else if (systematic == "down") {
+    Btag_SF -= Btag_SFerr;
+  }
 
   if(pdgIdPart == 5) {
     // b quarks
@@ -191,4 +217,8 @@ bool BTagging::applySF(bool isBTagged, double Btag_SF, double Btag_eff)
   }
 
   return newBTag;
+}
+
+void BTagging::SetSystematic(string sys) {
+  systematic = sys;
 }
