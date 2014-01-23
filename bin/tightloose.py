@@ -40,7 +40,7 @@ Batch submission of default job, creation of FakeRate file, submission of fake r
 
     # Check if base job needs to be submitted
     if (options.submitbase):
-        os.system("submit.py -a %s" % ( basename ))
+        os.system("submit.py -n 30 -a %s" % ( basename ))
         # wait until all jobs are terminated
         ara.wait_for_jobs(0)
         # check and resubmit if necessary
@@ -63,7 +63,7 @@ Batch submission of default job, creation of FakeRate file, submission of fake r
     ara.create_config_file(templateFileName, repMap, destination)
 
     # submit
-    os.system("submit.py -a %s_singlefake" % basename)
+    os.system("submit.py -n 30 -a %s_singlefake" % basename)
 
     # Create descendent configuration file (doublefake)
     repMap["AnalysisType = \"default\""] = "AnalysisType = \"doublefake\""
@@ -72,7 +72,7 @@ Batch submission of default job, creation of FakeRate file, submission of fake r
     ara.create_config_file(templateFileName, repMap, destination)
 
     # submit
-    os.system("submit.py -a %s_doublefake" % basename)
+    os.system("submit.py -n 30 -a %s_doublefake" % basename)
 
     # wait for jobs to finish and collect jobs
     ara.wait_for_jobs(0)
