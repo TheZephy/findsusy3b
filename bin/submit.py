@@ -42,7 +42,7 @@ def submit_condor_job(executable, arguments, inbox, outbox, jobname):
     jobfile = open(cfgFile, "w")
     jobfile.write(content)
     jobfile.close()
-    ara.wait_for_jobs(options.njobs)
+    ara.wait_for_jobs(ara.get_maximum_jobs(options.njobs))
     rc = ara.getCommandOutput2("condor_submit " + cfgFile)
     return rc
 
@@ -79,7 +79,8 @@ def submit(jobgroup, job, period):
                 path=thisdir[5:]
                 files = ara.uberftpls(path)
                 for (size, filename) in files:
-                    filelist.append(ara.config.get('Grid', 'dcap') + path + '/' + filename)
+                    if ".root" in filename:
+                        filelist.append(ara.config.get('Grid', 'dcap') + path + '/' + filename)
             else:
                 filespec =  os.path.abspath(os.path.expanduser(thisdir)) + '/*.root'
                 files = ara.getCommandOutput2('ls ' + filespec)
