@@ -162,10 +162,10 @@ void CfgParser::StoreLine(cfgEntry & currentEntry, string key, string value) {
 
       // check for trailing value
       if ( value.length() > valStart ) {
-	cout << value.length() << " " << valStart << " " << valLength << "   " << valStart+valLength+2 << endl;
+	//cout << value.length() << " " << valStart << " " << valLength << "   " << valStart+valLength+2 << endl;
 	valStart = oldPos+1;
 	valLength = value.length()-1;
-	cout << value.length() << " " << valStart << " " << valLength << endl;
+	//cout << value.length() << " " << valStart << " " << valLength << endl;
 	trimmedVal = value.substr(valStart, valLength);
 	trimmedVal.erase(0, trimmedVal.find('"')+1);
 	trimmedVal.erase(trimmedVal.rfind('"'), trimmedVal.length());
