@@ -31,9 +31,31 @@ Fullrun48: Rerun with new efficiency map
 Fullrun49: Slight changes to histogram sizes
 Fullrun50: Replaced faulty pileup reweighting root-file
 Fullrun51: Rerun with updated efficiency maps + fake estimates
-
-TODO:
-- Fix trigger selection to take one OR multiple trigger names
+Fullrun52: Skipped
+Fullrun53: Fullrun for meetings with systematics
+Fullrun54: JER systematics
+Fullrun55: Attempted JES + JER systematics
+Fullrun56: Rerun no systematics due to error
+Fullrun57: Partial removal of JES systematics
+Fullrun58: Full removal of JES systematics
+Fullrun59: Rerun with checked-in code
+Fullrun60: Rerun with checked-in code + JER systematic and restoring pf objects
+Fullrun61: Manual systematics
+Fullrun62: PDF reweighting run; NNPDF failure
+Fullrun63: PDF reweighting run; NNPDF failure
+Fullrun64: Clean rerun; slight changes to histogram sizes
+Fullrun65: Added vtx_n histograms before and after pileup reweighting
+Fullrun66: Removed vtx_n histograms; PileupReweighting turned off
+Fullrun67: Lowered secondary muon threshold to 10 GeV - NOPU
+Fullrun68: Secondary muon threshold back to 15 GeV - NOPU
+Fullrun69: Set back m_mumu cut to 15 GeV as well - CLEAN RUN - NOPU
+Fullrun70: GOOD RUN - PU on!
+Fullrun71: btag map recreation - FAIL
+Fullrun72: btag map recreation
+Fullrun73: rerun with new btag map
+Fullrun74: new histAllData12.root pileup file
+Fullrun75: full rerun of all analyses
+Fullrun76: Switched from DoubleMuParked to DoubleMu for 2012A
 
 OPTIONAL:
-- Systematics for b-tag efficiency: variable bin, rescale with eta projection fit to project p_T more consistently
+- MuonID: Global <-> low efficiency in certain regions
