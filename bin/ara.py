@@ -214,8 +214,8 @@ def get_maximum_jobs(njobs):
     """Throttle the maximum number of jobs during typical office hours in order
 not to overload the network"""
     ltime = time.localtime()
-    if ltime.tm_hour > 9 and ltime.tm_hour < 20 and ltime.tm_wday < 5:
-        return njobs
+    if ltime.tm_hour > 8 and ltime.tm_hour < 20 and ltime.tm_wday < 5:
+        return njobs/2
     else:
         return njobs
 
