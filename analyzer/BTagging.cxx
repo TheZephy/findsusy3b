@@ -140,18 +140,21 @@ double BTagging::GetBMisTagScaleFactor(double pt, double eta)
 double BTagging::GetBMisTagEfficiency(double pt, double eta)
 {
   if (pt > 800.) pt = 800.;
+  if (eta > 2.4) eta = 2.4;
   return bmistag_eff_map->GetBinContent(bmistag_eff_map->GetXaxis()->FindBin(pt), bmistag_eff_map->GetYaxis()->FindBin(eta));
 }
 
 double BTagging::GetBTagEfficiency(double pt, double eta)
 {
   if (pt > 800.) pt = 800.;
+  if (eta > 2.4) eta = 2.4;
   return btag_eff_map->GetBinContent(btag_eff_map->GetXaxis()->FindBin(pt), btag_eff_map->GetYaxis()->FindBin(eta));
 }
 
 double BTagging::GetCTagEfficiency(double pt, double eta)
 {
   if (pt > 800.) pt = 800.;
+  if (eta > 2.4) eta = 2.4;
   return ctag_eff_map->GetBinContent(ctag_eff_map->GetXaxis()->FindBin(pt), ctag_eff_map->GetYaxis()->FindBin(eta));
 }
 
