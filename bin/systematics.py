@@ -4,32 +4,41 @@ import os,sys,optparse
 import ara
 
 # define systematics jobs
-
-# mydict = eval("""
-# { 
-#   "LooseMuonRelIso" : 
-#   { 
-#     "default" : "0.5", 
-#     "syst" : ( "0.2", "0.4", "0.8", "1.0" )
-#   },
-#   "TL_jetpt_min" :
-#   {
-#     "default" : "50.",
-#     "syst" : ( "40.", "60.", "70." )
-#   },
-# }
-# """)
-
 mydict = eval("""
-{ 
-  "PileupDataFile_2012" : 
+{
+  "LooseMuonRelIso" : 
   { 
-    "default" : '"histAllData12.root"', 
-    "syst" : ( '"UPdata12.root"', '"DOWNdata12.root"' )
+    "default" : "0.5", 
+    "syst" : ( "0.2", "0.4", "0.8", "1.0" )
+  },
+ 
+  "TL_jetpt_min" :
+  {
+    "default" : "50.",
+    "syst" : ( "40.", "60.", "70." )
+  },
+  "TL_met_max" :
+  {
+    "default" : "50.",
+    "syst" : ( "40.", "60.", "70." )
+  },
+  "TL_mt_max" :
+  {
+    "default" : "40.",
+    "syst" : ( "30.", "50.", "60." )
   },
 }
 """)
 
+# mydict = eval("""
+# { 
+#   "PileupDataFile_2012" : 
+#   { 
+#     "default" : '"histAllData12.root"', 
+#     "syst" : ( '"UPdata12.root"', '"DOWNdata12.root"' )
+#   },
+# }
+# """)
 
 def create_and_submit_jobs(template, replacements, syst, value, basename):
     """Create configuration file "destination" by replacing the words 
