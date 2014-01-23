@@ -1,8 +1,10 @@
+#include <iostream>
 #include <sstream>
 
 using namespace std;
 
 #include "TLatex.h"
+#include "TPaveText.h"
 #include "TColor.h"
 #include "TMath.h"
 #include "TKey.h"
@@ -118,20 +120,32 @@ void setopt(TH1 * histo)
 {
   // set histo default options
   histo->SetTitleOffset(1.3, "Y"); // title offset
-  return;
-  histo->SetLabelSize(0.06, "X"); // title offset
-  histo->SetLabelSize(0.06, "Y"); // title offset
-  histo->SetLabelSize(0.06, "Z"); // title offset
-  histo->SetTitleSize(0.06, "X");  // title size
-  histo->SetTitleSize(0.06, "Y");  // title size
-  histo->SetTitleSize(0.06, "Z");  // title size
+
+  // thesis plots
   histo->SetTitleOffset(1.1, "X"); // title offset
-  histo->SetTitleOffset(1.1, "Z"); // title offset
-  histo->SetMarkerStyle(8);
-  histo->SetMarkerSize(1.1);
-//    histo->GetXaxis()->SetTitleColor(kBlack);
-//    histo->GetYaxis()->SetTitleColor(kBlack);
-//    histo->GetXaxis()->CenterTitle();
+  histo->SetLabelSize(0.05, "X"); // label size
+  histo->SetLabelSize(0.05, "Y"); // label size
+  histo->SetLabelSize(0.05, "Z"); // label size
+
+  histo->SetLabelFont(62, "X"); // label font
+  histo->SetLabelFont(62, "Y"); // label font
+  histo->SetLabelFont(62, "Z"); // label font
+
+  histo->SetTitleSize(0.05, "X");  // title size
+  histo->SetTitleSize(0.05, "Y");  // title size
+  histo->SetTitleSize(0.05, "Z");  // title size
+
+  histo->SetTitleFont(62, "X"); // title font
+  histo->SetTitleFont(62, "Y"); // title font
+  histo->SetTitleFont(62, "Z"); // title font
+
+  return; // move according to preference
+  // histo->SetTitleOffset(1.1, "Z"); // title offset
+  // histo->SetMarkerStyle(8);
+  // histo->SetMarkerSize(1.1);
+  // histo->GetXaxis()->SetTitleColor(kBlack);
+  // histo->GetYaxis()->SetTitleColor(kBlack);
+  // histo->GetXaxis()->CenterTitle();
 }
 
 void setopt(TLegend * leg)
@@ -139,6 +153,7 @@ void setopt(TLegend * leg)
   // set legend default option
   leg->SetBorderSize(0);
   leg->SetFillColor(kWhite);
+  leg->SetFillStyle(0);
 }
 
 void setopt(TGraph * gr)
@@ -726,6 +741,44 @@ void MakeCanvas(Int_t dx, Int_t dy)
   cd(gPadNr+1);
 }
 
+void MakeRatioCanvas() {
+  // create analysis canvas with requested subdivisions
+  if (gCanvas) {
+    delete gCanvas;
+    gCanvas = 0;
+    nPad = 0;
+  }
+
+  Int_t ysize = (Int_t) (600 * 1.25);
+  Int_t xsize = (Int_t) (600 * TMath::Sqrt(2.));
+
+  // create canvas
+  gCanvas = new TCanvas("gCanvas", "analysis", 0, 0, xsize, ysize);
+
+  // set canvas style
+  setopt(gCanvas);
+
+  // make subpads and activate first pad
+  gPadNr = 0;
+  TPad * pad1 = new TPad("analysisplotpad","pad1", 0, 0.25, 1, 1);
+  pad1->SetBottomMargin(0);
+  pad1->SetLeftMargin(0.15);
+  pad1->SetNumber(1);
+  pad1->Draw();
+
+  gCanvas->cd();
+  TPad * pad2 = new TPad("analysisratiopad","pad1", 0, 0, 1, 0.25);
+  pad2->SetTopMargin(0);
+  pad2->SetBottomMargin(0.24);
+  pad2->SetLeftMargin(0.15);
+  pad2->SetRightMargin(0.05);
+  pad2->SetNumber(2);
+  pad2->Draw();
+
+  nPad = 2;
+  pad1->cd();  
+}
+
 void MakeCanvas2(Int_t dy, Double_t percent = 0.8)
 {
   // make another canvas
@@ -1178,28 +1231,32 @@ void drawoverflow()
     return;
   
   Double_t lmax = -1E99;
-  Double_t bw = 0;
-  Double_t xmax = 0, xmin = 0, ymin = 0;
   // find maximum in the overflow bin
-  for (Int_t process = 0; process < gMaxProcess; process++) {
+  for (Int_t i = 0; i < gMaxProcess; i++) {
+    Int_t process = gOrder[gPadNr][i];
     TH1D * h = gStack[gPadNr][process];
     if (h == 0)
       continue;
-    Int_t bin  = h->GetNbinsX();
-    lmax = TMath::Max(lmax, gStack[gPadNr][process]->GetBinContent(bin));
-    bw   = h->GetBinWidth(bin);
-    xmax = h->GetXaxis()->GetXmax();
-    xmin = h->GetXaxis()->GetXmin();
-    ymin = h->GetYaxis()->GetXmin();
+
+    Int_t lastVisibleBin  = h->GetXaxis()->GetLast();
+    Double_t integral = 0;
+    for (Int_t bin = lastVisibleBin+1; bin < h->GetNbinsX()+2; bin++) { 
+      integral += h->GetBinContent(bin);
+    }
+    if (integral > 0) {
+      h->SetBinContent(lastVisibleBin, h->GetBinContent(lastVisibleBin)+integral);
+    }
+
+    lmax = TMath::Max(lmax, integral);
   }
-  if (lmax < 0)
+  if (!(lmax > 0))
     return;
+      
   const char * text = "Last bin includes overflow";
+
   // text above last bin
-  // TText * t   = new TText(x+bw/2,1.1*(lmax+sqrt(lmax)), "Overflow bin");
-  // t->SetTextAlign(12);
-  // text next to overflow bin, right from axis
-  TText * t = new TText(xmax+0.01*(xmax-xmin), ymin, text);
+  TLatex * t = new TLatex(0.96, gPad->fBottomMargin, text);
+  t->SetNDC();
   t->SetTextAlign(13);
   t->SetTextSize(0.03);
   t->SetTextAngle(90);
@@ -1473,7 +1530,7 @@ void zoom(Double_t low, Double_t up)
 {
   // zoom on x-axis
   Double_t overflow = 0.;
-  for (Int_t process = 0; process < gMaxProcess-1; process++) {
+  for (Int_t process = 0; process < gMaxProcess; process++) {
     TH1D * h = gStack[gPadNr][process];
     if (h) {
       h->SetAxisRange(low, up);
@@ -1884,12 +1941,25 @@ void legend(Double_t mincontent, Int_t posi, Double_t miny)
   DEBUG("exit legend()");
 }
 
-// void lumi()
-// {
-//   const char * name[50];
-//   sprintf(name, "#int L dt = %2.1f pb^{-1}", lumi);
-//   t[gPadNr]->DrawLatex(0.4,0.92,name);
-//}
+void lumi()
+{
+  char name[50];
+  sprintf(name, "#int L dt = %2.1f fb^{-1}", gLumi[0]/1000.);
+  // TLatex * t = new TLatex();
+  // t->SetNDC();
+  // t->SetTextSize(0.04);
+  // t->DrawLatex(0.5,0.86,name);
+  // t->DrawLatex(0.5,0.80, "#sqrt{s} = 8 TeV");
+  
+  TPaveText * t = new TPaveText(0.49, 0.77, 0.71, 0.93, "brNDC");
+  t->SetFillStyle(0);
+  t->SetFillStyle(0);
+  t->SetBorderSize(0);
+  t->SetTextAlign(23);
+  t->AddText(name);
+  t->AddText("#sqrt{s} = 8 TeV");
+  t->Draw();
+}
 
 
 void subfigure(const char * subfig)
@@ -2169,6 +2239,42 @@ void plot(const char * hname, const char * selection,
   findmax();
   findmin();
   draw();
+}
+
+void ratio() {
+  if (gCanvas == 0) {
+    return;
+  }
+
+  TH1D * stack = gStack[gPadNr][gOrder[gPadNr][0]]; // fully stacked histogram
+  TH1D * ratio = new TH1D(*gStack[gPadNr][gMaxProcess-1]); // data
+
+  // stack->GetYaxis()->SetTitleOffset(1.);
+  // stack->GetYaxis()->SetTitleSize(0.05);
+
+  ratio->Divide(stack);
+  setopt(ratio);
+  
+  gCanvas->cd(2);
+  ratio->SetMaximum(-1111);
+  ratio->SetMinimum(-1111);
+  ratio->GetXaxis()->SetRange(stack->GetXaxis()->GetFirst(), stack->GetXaxis()->GetLast());
+
+  ratio->GetYaxis()->SetTitle("Data/MC Ratio");
+  ratio->GetYaxis()->CenterTitle();
+  ratio->GetYaxis()->SetTitleOffset(0.45);
+  ratio->GetYaxis()->SetTitleSize(0.10);;
+  ratio->GetYaxis()->SetLabelSize(0.11);
+  ratio->GetYaxis()->SetNdivisions(506);
+
+  ratio->GetXaxis()->SetTitle(stack->GetXaxis()->GetTitle());
+  ratio->GetXaxis()->CenterTitle();
+  ratio->GetXaxis()->SetTitleOffset(1.05);
+  ratio->GetXaxis()->SetTitleSize(0.10);;
+  ratio->GetXaxis()->SetLabelSize(0.11);
+
+  ratio->Draw("e1p");
+  gCanvas->cd(1);
 }
 
 void plotadd(const char * name1, const char * name2)
