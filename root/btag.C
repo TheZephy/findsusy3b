@@ -1,4 +1,5 @@
 #include "plot.h"
+#include "plot.C"
 #include "TFile.h"
 #include "string.h"
 
@@ -22,7 +23,7 @@ void calculate_b_efficiency()
   TH2D * h2_b_eff = new TH2D(*h2_btag_num_b);
   h2_b_eff->Divide(h2_btag_num_b, h2_btag_denom_b, 1., 1., "B");
   new TCanvas;
-  //h2_b_eff->GetXaxis()->SetRangeUser(0,500);
+  //h2_b_eff->GetXaxis()->SetRangeUser(5,800);
   //h2_b_eff->GetYaxis()->SetRangeUser(-2.4,2.4);
   h2_b_eff->Draw();
 
@@ -39,8 +40,25 @@ void calculate_b_efficiency()
   TH1D * h1_b_eff = new TH1D(*h1_btag_num_b);
   h1_b_eff->Divide(h1_btag_num_b, h1_btag_denom_b, 1., 1., "B");
   
-  new TCanvas;
+  TCanvas * b_proj = new TCanvas("b_proj", "b_proj", 800,600);
+  b_proj->cd();
+  setopt(b_proj);
+  setopt(h1_b_eff);
+  h1_b_eff->SetMarkerStyle(8);
+  h1_b_eff->SetMarkerSize(.7);
+  h1_b_eff->SetTitle("");
+  h1_b_eff->GetYaxis()->SetTitle("b-tag efficiency");
+  h1_b_eff->GetYaxis()->SetTitleFont(62);
+  h1_b_eff->GetYaxis()->SetTitleSize(0.04);
+  h1_b_eff->GetYaxis()->SetLabelFont(62);
+  h1_b_eff->GetYaxis()->SetLabelSize(0.04);
+  h1_b_eff->GetXaxis()->SetTitleFont(62);
+  h1_b_eff->GetXaxis()->SetTitleSize(0.04);
+  h1_b_eff->GetXaxis()->SetLabelFont(62);
+  h1_b_eff->GetXaxis()->SetLabelSize(0.04);
   h1_b_eff->Draw();
+  lumi();
+  drawperiod();
 }
 
 
