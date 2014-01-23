@@ -1,5 +1,7 @@
 #include "TMath.h"
 #include "TH1D.h"
+#include "TGraphErrors.h"
+#include "TMultiGraph.h"
 
 #include "plot.h"
 #include "rpv.h"
@@ -275,55 +277,175 @@ void background_systematics()
        << globErrorCorrelated << " (corr) ]");
 }
 
-// /** @todo Need to make this function display MC statistics independent of
-//  * other syst. uncertainties. */
-// void deltaN()
-// {
-//   // global systematic error, Table 5 of AN
-//   const double systerrglobal = TMath::Sqrt(4.*4.+3.*3.+6.*6.+1.*1.+1.*1.)/100.;
-//   cout << "global systematic error in %: " << systerrglobal << endl;
-  
-  // double totn = 0;
-  // double totstaterr2 = 0;
-  // double totsysterr2 = 0;
-  // double corrsyserr = 0;
-  // double corrsyserrtot = 0;
-//   for (int n = 0; n < nMax; n++) {
-//     double locstaterr2 = 0.;
-//     double locsysterr2 = 0.;
-//     if (strstr(procs[n].name, "data"))
-//       continue;
-//     if (!strcmp(procs[n].name, "sf") || !strcmp(procs[n].name, "sf")) {
-//       // correlated sys. error from data driven method.  
-//       // The error is correlated between channels WJets and QCD and correlated
-//       // with other backgrounds due to subtraction procedure
-//       corrsyserr = procs[n].N*procs[n].systfactor;
-//       corrsyserrtot += corrsyserr;
-//     }
-//     else {
-//       // cross-section uncertainty 
-//       corrsyserr = 0;
-//       locsysterr2 += TMath::Power(procs[n].N*procs[n].systfactor, 2.);
-//       // MC statistics
-//       locstaterr2 += TMath::Power(procs[n].staterr, 2.);
-//       // global systematic error, see above
-//       locsysterr2 += TMath::Power(procs[n].N*systerrglobal, 2.);
-//     }
-//     totn    += procs[n].N;
-//     totsysterr2 += locsysterr2;
-//     totstaterr2 += locstaterr2;
-//     cout << procs[n].name << ": " << procs[n].N 
-// 	 << " +/- " << TMath::Sqrt(locstaterr2) << " (stat)" 
-// 	 << " +/- " << TMath::Sqrt(locsysterr2)+corrsyserr << " (syst)" << endl;
-//   }
-//   cout << "Total number of background events: " << totn 
-//        << " +/- " << TMath::Sqrt(totstaterr2) << " (stat)"
-//        << " +/- " << TMath::Sqrt(totsysterr2+corrsyserrtot*corrsyserrtot)  << " (syst)" << endl;
-//   cout << "Total syst corr err " << corrsyserrtot << endl;
-//   cout << "Total syst uncorr err " << TMath::Sqrt(totsysterr2) << endl;
-// }
+void drawPDFUncertainties () {
+  MakeCanvas(1,1);
+  cd(1);
+  stage("0");
+  plot("m_smuon");
+  rebin(80);
 
-// systematics()
-// {
-//   deltaN();
-// }
+  TH1D * h_U = new TH1D(*gStack[0][gOrder[0][0]]);
+  h_U->SetName("h_U");
+  h_U->SetTitle("h_U");
+  h_U->Reset();
+
+  TH1D * h_L = new TH1D(*gStack[0][gOrder[0][0]]);
+  h_L->SetName("h_L");
+  h_L->SetTitle("h_L");
+  h_L->Reset();
+
+  TH1D * h_M = new TH1D(*gStack[0][gOrder[0][0]]);
+  h_M->SetName("h_M");
+  h_M->SetTitle("h_M");
+  h_M->Reset();
+
+  TH1D * h_EP = new TH1D(*gStack[0][gOrder[0][0]]);
+  h_EP->SetName("h_EP");
+  h_EP->SetTitle("h_EP");
+  h_EP->Reset();
+
+  TH1D * h_EM = new TH1D(*gStack[0][gOrder[0][0]]);
+  h_EM->SetName("h_EM");
+  h_EM->SetTitle("h_EM");
+  h_EM->Reset();
+  
+  TH1D * h_pdf[6] = { 0 };
+  const char * pdf[] = {
+    "m_smuon_sys_pdf_CT10_up",
+    "m_smuon_sys_pdf_CT10_down",
+    "m_smuon_sys_pdf_MSTW_up",
+    "m_smuon_sys_pdf_MSTW_down",
+    "m_smuon_sys_pdf_NNPDF_up",
+    "m_smuon_sys_pdf_NNPDF_down"
+  };
+
+  TCanvas * c2 = new TCanvas("c2", "PDF plots", 849, 600);
+  TCanvas * c3 = new TCanvas("c3", "PDF ratio plots", 849, 600);
+  // TCanvas * c4 = new TCanvas("c4", "PDF ratio plots (nice)", 849, 600);
+
+  for (int i = 0; i < 3; i++) {
+    gCanvas->cd(gPadNr);
+    plot(pdf[2*i]);
+    rebin(80);
+    h_pdf[2*i] = new TH1D(*gStack[0][gOrder[0][0]]);
+    c2->cd();
+    h_pdf[2*i]->SetLineColor(i+2);
+    h_pdf[2*i]->SetLineWidth(2);
+    h_pdf[2*i]->SetFillStyle(0);
+    INFO("title: " << h_pdf[2*i]->GetTitle());
+    h_pdf[2*i]->DrawCopy(Form("hist%s", i == 0 ? "" : "same"));
+
+    gCanvas->cd(gPadNr);
+    plot(pdf[2*i+1]);
+    rebin(80);
+    h_pdf[2*i+1] = new TH1D(*gStack[0][gOrder[0][0]]);
+    c2->cd();
+    h_pdf[2*i+1]->SetLineColor(i+2);
+    h_pdf[2*i+1]->SetLineWidth(2);
+    h_pdf[2*i+1]->SetFillStyle(0);
+    h_pdf[2*i+1]->DrawCopy(Form("hist%s", i == 0 ? "" : "same"));
+  }
+
+  for (int bin = 0; bin < h_pdf[0]->GetNbinsX()+2; bin++) {
+    Double_t u = TMath::Max(h_pdf[0]->GetBinContent(bin), TMath::Max(h_pdf[2]->GetBinContent(bin), h_pdf[4]->GetBinContent(bin)));
+    Double_t l = TMath::Min(h_pdf[1]->GetBinContent(bin), TMath::Min(h_pdf[3]->GetBinContent(bin), h_pdf[5]->GetBinContent(bin)));
+    Double_t m = (u+l)/2.;
+
+    h_U->SetBinContent(bin, u);
+    h_L->SetBinContent(bin, l);
+    h_M->SetBinContent(bin, m);
+
+    if (m != 0) {
+      h_EP->SetBinContent(bin, (u-m)/m);
+      h_EM->SetBinContent(bin, (l-m)/m);
+
+      for (int j = 0; j < 6; j++) {
+	h_pdf[j]->SetBinContent(bin, (h_pdf[j]->GetBinContent(bin)-m)/m);
+      }
+    }
+    else {
+      h_EP->SetBinContent(bin, 0.);
+      h_EM->SetBinContent(bin, 0.);
+
+      for (int j = 0; j < 6; j++) {
+	h_pdf[j]->SetBinContent(bin, 0.);
+      }
+    }
+  }
+  
+  c2->cd(); // weighted distributions
+  h_U->SetLineColor(kOrange);
+  h_U->SetLineStyle(kDotted);
+  h_U->SetFillStyle(0);
+  h_U->Draw("same");
+  h_L->SetLineColor(kOrange);
+  h_L->SetLineStyle(kDotted);
+  h_L->SetFillStyle(0);
+  h_L->Draw("same");
+
+  c3->cd(); // percentual deviations
+  // coloured areas
+  const int maxXBins = h_U->GetNbinsX()+2;
+  Double_t x[3][maxXBins];
+  Double_t y[3][maxXBins];
+  Double_t ex[3][maxXBins];
+  Double_t ey[3][maxXBins];
+
+  for (int bin = 0; bin < h_pdf[0]->GetNbinsX()+2; bin++) {
+    for (int i = 0; i < 3; i++) {
+      x[i][bin] = h_pdf[2*i]->GetBinCenter(bin);
+      ex[i][bin] = h_pdf[2*i]->GetBinWidth(bin)/2;
+      y[i][bin] = ( h_pdf[2*i]->GetBinContent(bin) + h_pdf[2*i+1]->GetBinContent(bin) )/2;
+      ey[i][bin] = (h_pdf[2*i]->GetBinContent(bin) - y[i][bin]);
+    }
+  }
+
+  // c4->cd();
+  TGraphErrors * h_fillpdf[3];
+  TMultiGraph * mg = new TMultiGraph();
+  for (int i = 0; i < 3; i++) { 
+    h_fillpdf[i] = new TGraphErrors(maxXBins, x[i], y[i], ex[i], ey[i]);
+    h_fillpdf[i]->SetFillStyle(3004);
+    h_fillpdf[i]->SetFillColor(i+2);
+    // h_fillpdf[i]->SetRangeUser(0, maxXBins);
+    mg->Add(h_fillpdf[i]); 
+  }  
+
+
+  h_EP->SetLineColor(kBlack);
+  h_EP->SetLineStyle(kDashed);
+  h_EP->SetFillStyle(0);
+  h_EP->GetYaxis()->SetTitle("#frac{Variation - Best fit}{Best fit}");
+  h_EP->SetMaximum(0.2);
+  h_EP->SetMinimum(-0.15);
+
+  h_EP->Draw("hist");
+  mg->Draw("2");
+
+
+  // outlines
+  for (int i = 0; i < 6; i++) { 
+    h_pdf[i]->Draw("histsame");
+    // Form("hist%s", i == 0 ? "" : "same")
+  }
+
+  // redraw over the lines
+  // h_EP->Draw("same");
+
+  h_EM->SetLineColor(kBlack);
+  h_EM->SetLineStyle(kDashed);
+  h_EM->SetFillStyle(0);
+  h_EM->Draw("same");
+
+
+
+  TLegend * t = new TLegend(0.72, 0.74, 0.92, 0.92);
+  setopt(t);
+  t->AddEntry(h_fillpdf[0], "CT10", "f");
+  t->AddEntry(h_fillpdf[1], "MSTW2008", "f");
+  t->AddEntry(h_fillpdf[2], "NNPDF 2.3", "f");
+  t->Draw();
+  
+  c3->Modified();
+  c3->Update();
+}
