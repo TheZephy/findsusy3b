@@ -24,6 +24,14 @@
 #include "TreeContent.h"
 #include "LumiReweightingStandAlone.h"
 
+#ifndef __CINT__
+#include "CondFormats/JetMETObjects/interface/JetCorrectorParameters.h"
+#include "CondFormats/JetMETObjects/interface/JetCorrectionUncertainty.h"
+#else
+class JetCorrectorParameters;
+class JetCorrectionUncertainty;
+#endif /* __CINT __ */
+
 using namespace std;
 
 struct ssys {
@@ -118,12 +126,38 @@ protected:
 
   // values for b-tagging (BTAG)
   Double_t fBTAG_threshold;
+  string fBTAG_systematic;
+
+  // jet energy scale systematics (JES)
+  JetCorrectionUncertainty * fJES_JetCorrectionUncertainty;
+  string fJES_systematic;
 
   // values for smearing jet energies (JER)
   Bool_t   fJER_calculation;
+  string   fJER_systematic;
   Double_t fJER_center;
   Double_t fJER_smear;
   Double_t fJER_met_old;
+
+  vector<Double_t> fJER_jet_E;
+  vector<Double_t> fJER_jet_Et;
+  vector<Double_t> fJER_jet_p;
+  vector<Double_t> fJER_jet_pt;
+  vector<Double_t> fJER_jet_px;
+  vector<Double_t> fJER_jet_py;
+  vector<Double_t> fJER_jet_pz;
+
+  Double_t fJER_met_et;
+  Double_t fJER_met_sumet;
+  Double_t fJER_met_ex;
+  Double_t fJER_met_ey;
+  Double_t fJER_met_phi;
+
+  // muon energy resolution systematics (MER)
+  Bool_t fMER_systematic;
+
+  // muon energy resolution systematics (MER)
+  string fMES_systematic;
 
   //////////////////////////////////////////////////////////////////////
   // analysis variables
@@ -188,9 +222,12 @@ protected:
 				  const vector<int> & jets,
 				  const double HT);
   double GetFakeRate(double muopt, double eta, double jetpt);
-  double GetJERScale(double eta);
+  double GetJERScale(double eta, string sys = "none");
   void PFJetSmearing();
   void PFJetSmearingCalculation();
+  void JESandRecalculateMET(TString);
+  void MuonEnergySmearing();
+  void MuonEnergyScale(TString);
   void BTagEfficiencyMap();
 
   Bool_t TriggerMatched(Int_t muonIterator, vector <TString> triggerFilters);
@@ -225,9 +262,12 @@ protected:
 		   Int_t nbinsz, Double_t zlow, Double_t zup);
   void Fill(const char * name, double value);
   void Fill(const char * name, const char * bin);
-  void FillNoWeight(const char * name, double value);
+  void FillWithWeight(const char * name, double value, double weight);
   void Fill(const char * name, double x, double y);
   void Fill(const char * name, double x, double y, double z);
+
+  void StoreSmearingObjects();
+  void RestoreSmearingObjects();
 
   // taken over from ACSUSYAna
   void BasicDump(int i);
@@ -254,7 +294,7 @@ protected:
   // this is the magic for pileup reweighting
   reweight::LumiReWeighting LumiWeights_;
   /* reweight::PoissonMeanShifter PShiftUp_; */
-  /* reweight::PoissonMeanShifter PShiftDown_; */
+  /* reweight::PoissonMeanShifter PShiftDown_; */ 
 
   // b-tagging correction
   BTagging fBTagging;
