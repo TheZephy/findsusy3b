@@ -108,7 +108,7 @@ Bool_t read_xsfile(const char * fname, int nMax,
   return kTRUE;
 }
 
-void xscurve(const char * fname = "scan_7TeV_ud_smuon.txt")
+void xscurve(const char * fname = "scan_8TeV_ud_smuon.txt")
 {
   double lambda, sqrts;
   const int nMax = 1000;
@@ -137,7 +137,7 @@ void xscurve(const char * fname = "scan_7TeV_ud_smuon.txt")
   }
 
   TCanvas * c1 = new TCanvas("c1", "Single slepton Cross-section",
-			     (Int_t) (400*TMath::Sqrt(2.)), 400);
+			     (Int_t) (600*TMath::Sqrt(2.)), 600);
   setopt(c1);
   gPad->SetLogy();
   TH2F * hframe = new TH2F("hframe", "frame", 1, m_min, m_max, 1, xs_min, xs_max);
