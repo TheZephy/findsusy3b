@@ -268,7 +268,7 @@ TH1D * get_subtracted_tight_loose_ratio(bool save, bool draw)
 
   // now work in 2D-Projection (NUF = do not project underflow, NOF = ... overflow)
   TH2D * hTight2 = (TH2D *) hTight3_data->Project3D("yxNUFNOF");
-  TH2D * hLoose2 = (TH2D *) hLoose3_data->Project3D("yxNUFNOF");
+   TH2D * hLoose2 = (TH2D *) hLoose3_data->Project3D("yxNUFNOF");
   if (fabs(hTight2->Integral() - hTight3_data->Integral())/hTight3_data->Integral() > 1e-10) {
     ERROR("Project3D error tight");
     INFO("2D integral: " << hTight2->Integral() 
@@ -368,10 +368,12 @@ TH1D * get_subtracted_tight_loose_ratio(bool save, bool draw)
     // print lego plot to file
     TCanvas * c2 = new TCanvas("c2", "canvas for printing", 0, 0, Int_t(640.*TMath::Sqrt(2.)), 640);
     setopt(c2);
+    //hRatio2->SetZTitle("T/L Ratio");
+    hRatio2->GetZaxis()->SetTitleOffset(1.2);
     hRatio2->Draw("lego2");
     hRatio2->SetMaximum(1.0);    
     gPad->Print("tlratio2d.pdf");
-    delete c2;
+    //delete c2;
   }
 
   // compute 1D ratio
@@ -573,7 +575,8 @@ void tight_loose_ratioplot()
   if (hdata_subtracted == 0)
     return;
   Double_t linemax = hdata_subtracted->GetXaxis()->GetXmax();
-  TLine * l = new TLine(20., 0, linemax, 0);
+  Double_t linemin = hdata_subtracted->GetXaxis()->GetXmin();
+  TLine * l = new TLine(linemin, 0, linemax, 0);
   l->SetLineStyle(kDotted);
   l->SetLineColor(kBlack);
   l->SetLineWidth(2);
@@ -584,6 +587,72 @@ void tight_loose_ratioplot()
   leg->AddEntry(hdata_subtracted, "data subtr.", "ep");
   leg->Draw();
   gPad->Print("tlratio.pdf");
+}
+
+void qcd_closure_histogram()
+{
+  MakeCanvas(2,2);
+  cd(1);
+  INFO("Plotting tight muons");
+  plot3("TightMuons");
+  cd(2);
+  INFO("Plotting loose muons");
+  plot3("LooseMuons");
+
+
+  TH3D * hTight3_qcdsum = gHisto3[0][0];
+  TH3D * hLoose3_qcdsum = gHisto3[1][0];
+
+  hTight3_qcdsum->Reset();
+  hLoose3_qcdsum->Reset();
+    
+  for (Int_t i = 0; i < gMaxProcess-1; i++) {
+    TString proc = gProcess[i].fname;
+    if (!proc.Contains("qcd"))
+      continue;
+
+    if (gHisto3[0][i] == 0 || gHisto3[1][i] == 0) {
+      ERROR("Tight/Loose QCD Histogram for " << gProcess[i].fname << " not found");
+    }
+
+    hTight3_qcdsum->Add(gHisto3[0][i], 1.);
+    hLoose3_qcdsum->Add(gHisto3[1][i], 1.);
+  }
+
+  TH2D * hTight2_qcd = (TH2D *) hTight3_qcdsum->Project3D("yxNUFNOF");
+  TH2D * hLoose2_qcd = (TH2D *) hLoose3_qcdsum->Project3D("yxNUFNOF");
+
+  hTight2_qcd->Smooth();
+  hLoose2_qcd->Smooth();
+
+  setopt(hLoose2_qcd);
+  setopt(hTight2_qcd);
+
+  cd(3);
+  hLoose2_qcd->Draw("LEGO2");
+  cd(4);
+  hTight2_qcd->Draw("LEGO2");
+
+  TH2D * hRatio2 = new TH2D(*hTight2_qcd);
+  hRatio2->SetDirectory(0);
+  hRatio2->SetName("hRatio2");
+  hRatio2->SetTitle("Tight/Loose ratio (T/L) (2D)");
+
+  hRatio2->Divide(hTight2_qcd, hLoose2_qcd, 1., 1., "B");
+
+  cd(1);
+  setopt(hRatio2);
+  hRatio2->Draw("LEGO2");
+
+  const char * fakeRateFileName = Form("../config/FakeRate_%s_qcd.root", gSubDir);
+  TFile * fakeRateFile = new TFile(fakeRateFileName, "RECREATE");
+  if (fakeRateFile == 0 || !fakeRateFile->IsOpen()) {
+    ERROR("Could not open fake rate file " << fakeRateFileName);
+  }
+
+  hRatio2->Write();
+  fakeRateFile->Close();
+  delete fakeRateFile;
 }
 
 void tightlooseplots(int start, int end)
@@ -860,6 +929,47 @@ TH1D * fake_estimate_1d(const char * sel, const char * hname)
 }
 
 /** Estimate single- and double-fakes and derive number of QCD and W+jets
+ * events (N_), and corresponding errors on them (R_), in one dimension.
+ *
+ */
+TH1D * closure_estimate_1d(const char * sel, const char * hname)
+{
+  MakeCanvas();
+
+  selection(Form("%s_singlefake", sel));
+  cd(1);
+  plot(hname);
+  legend();
+
+  TH1D * h_sf = backgroundHisto("ttjets");
+  double N_sf, R_sf;
+  N_sf = h_sf->IntegralAndError(1, h_sf->GetNbinsX(), R_sf);
+  INFO("N_sf = " << N_sf << " +/- " << R_sf);
+
+  selection(Form("%s_doublefake", sel));
+  cd(2);
+  plot(hname);
+  legend();
+
+  TH1D * h_df = backgroundHisto("ttjets");
+  double N_df, R_df;
+  N_df = h_df->IntegralAndError(1, h_df->GetNbinsX(), R_df);
+  // output to screen
+  INFO("N_df = " << N_df << " +/- " << R_df);
+  // print
+  print(Form("%s-%s-fake_estimate.pdf", sel, hname));
+  // subtract double fakes from single fakes
+  double N_fakes   = N_sf - N_df;
+  // errors are 100% correlated - at least theoretically
+  // experimentally not, since they are determined from different samples
+  double R_fakes   = TMath::Sqrt(q(R_sf)+q(R_df));
+  INFO("Fakes: " << N_fakes << " +/- " << R_fakes);
+  h_sf->Add(h_df, -1.);
+  return h_sf;
+}
+
+
+/** Estimate single- and double-fakes and derive number of QCD and W+jets
  * events (N_), and corresponding errors on them (R_), in two dimensions.
  *
  */
@@ -900,26 +1010,31 @@ void fakerate_systematics(int istart = 0, int iend = 999)
 
   // get default values
   setup("../config/plot.cfg");
-  TH1D * hReferenceFakes = fake_estimate_1d("default13", hname);
+  TH1D * hReferenceFakes = fake_estimate_1d("fullrun75", hname);
   double N_ref, R_ref; // N and RMS
   N_ref = hReferenceFakes->IntegralAndError(1, hReferenceFakes->GetNbinsX(), R_ref);
 
   // list of systematics
-  const int nMax = 10;
+  const int nMax = 14;
   const syst_struct sel[nMax] = {
-    { "reliso_03", "" },
-    { "reliso_05", "" },
-    { "reliso_06", "" },
-    { "reliso_08", "" },
+    { "fullrun75_LooseMuonRelIso_0.2", "" },
+    { "fullrun75_LooseMuonRelIso_0.4", "" },
+    { "fullrun75_LooseMuonRelIso_0.8", "" },
+    { "fullrun75_LooseMuonRelIso_1.0", "" },
 
-    { "jetptmin_50", "" },
-    { "jetptmin_60", "" },
-    { "jetptmin_80", "" },
+    { "fullrun75_TL_jetpt_min_40.", "" },
+    { "fullrun75_TL_jetpt_min_60.", "" },
+    { "fullrun75_TL_jetpt_min_70.", "" },
 
-    { "fakeratemethod_zero", "" },
-    
-    { "triggerbias_singlemu", "_singlemu" },
-    { "triggerbias_mu8_jet40", "_mu8_jet40" }
+    { "fullrun75_TL_met_max_40.", "" },
+    { "fullrun75_TL_met_max_60.", "" },
+    { "fullrun75_TL_met_max_70.", "" },
+
+    { "fullrun75_TL_mt_max_30.", "" },
+    { "fullrun75_TL_mt_max_50.", "" },
+    { "fullrun75_TL_mt_max_60.", "" },
+
+    { "fullrun75_smoothsys_off", "" }
   };
 
   // get all numbers
@@ -948,3 +1063,21 @@ void fakerate_systematics(int istart = 0, int iend = 999)
   }
 }
 
+void create_fakehistograms(const char * sel)
+{
+  selection(sel);
+  TFile * f = new TFile("fakes.root", "RECREATE");
+  TH1D * hist = fake_estimate_1d(sel, "CR6_m_mumu");
+  f->cd(); hist->Write();
+  hist = fake_estimate_1d(sel, "CR6_m_smuon");
+  f->cd(); hist->Write();
+  hist = fake_estimate_1d(sel, "CR6_m_gaugino");
+  f->cd(); hist->Write();
+  hist = fake_estimate_1d(sel, "m_mumu");
+  f->cd(); hist->Write();
+  hist = fake_estimate_1d(sel, "m_smuon");
+  f->cd(); hist->Write();
+  hist = fake_estimate_1d(sel, "m_gaugino");
+  f->cd(); hist->Write();
+  f->Close();
+}
