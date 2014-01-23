@@ -7,6 +7,13 @@
 # Name of the executable
 PROGRAM        = analyzer
 
+CMSSW_RELEASE_BASE_NOPATCH:=$(shell echo $(CMSSW_RELEASE_BASE) | sed -e 's/-patch//' -e 's/_patch.//')
+CMSSW_INC:=-I$(CMSSW_RELEASE_BASE)/src -I$(CMSSW_BASE)/src
+CMSSW_LIBS:=-L$(CMSSW_BASE)/lib/$(SCRAM_ARCH) -L$(CMSSW_RELEASE_BASE)/lib/$(SCRAM_ARCH) -L$(CMSSW_RELEASE_BASE)/external/$(SCRAM_ARCH)/lib -L$(CMSSW_RELEASE_BASE_NOPATCH)/lib/$(SCRAM_ARCH)
+
+EXTLIBS     = $(CMSSW_LIBS) -lCondFormatsJetMETObjects
+EXTINCDIR   = $(CMSSW_INC)
+
 # external includes / libraries
 #CLHEP_VERSION = 2.0.2.1
 #EXTINCDIR     = -I/usr/local/include/ # external header files should be here, leading slash is mandatory!
