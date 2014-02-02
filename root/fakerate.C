@@ -1010,12 +1010,12 @@ void fakerate_systematics(int istart = 0, int iend = 999)
 
   // get default values
   setup("../config/plot.cfg");
-  TH1D * hReferenceFakes = fake_estimate_1d("fullrun75", hname);
+  TH1D * hReferenceFakes = fake_estimate_1d("fullrun76", hname);
   double N_ref, R_ref; // N and RMS
   N_ref = hReferenceFakes->IntegralAndError(1, hReferenceFakes->GetNbinsX(), R_ref);
 
   // list of systematics
-  const int nMax = 14;
+  const int nMax = 13; // dont forget to set this when you chance the array below!
   const syst_struct sel[nMax] = {
     { "fullrun75_LooseMuonRelIso_0.2", "" },
     { "fullrun75_LooseMuonRelIso_0.4", "" },
@@ -1032,9 +1032,9 @@ void fakerate_systematics(int istart = 0, int iend = 999)
 
     { "fullrun75_TL_mt_max_30.", "" },
     { "fullrun75_TL_mt_max_50.", "" },
-    { "fullrun75_TL_mt_max_60.", "" },
+    { "fullrun75_TL_mt_max_60.", "" } //,
 
-    { "fullrun75_smoothsys_off", "" }
+    // { "fullrun75_smoothsys_off", "" }
   };
 
   // get all numbers
@@ -1079,5 +1079,7 @@ void create_fakehistograms(const char * sel)
   f->cd(); hist->Write();
   hist = fake_estimate_1d(sel, "m_gaugino");
   f->cd(); hist->Write();
+  TH2D * hist2 = fake_estimate_2d(sel, "jjmm_m");
+  f->cd(); hist2->Write();  
   f->Close();
 }
