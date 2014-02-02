@@ -20,13 +20,16 @@ struct proc {
   const char * name; // process name
 };
 
-const int nMax = 19;
-const int nbins = 6;
-const int firststage = 7; // first stage that contains the first bin
+const int nbins = 6; // number of bins
+vector<vector<proc> > procs;
 
-proc procs[nbins][nMax];
 
-proc sumprocs[nbins][nMax];
+double fakes[nbins][2];
+void fill_fakes(const char * sel = "fullrun76", const char * hname = "jjmm_m")
+{
+  // six bins with value and error in each bin
+  get2dstatistics(fake_estimate_2d(sel, hname), fakes);
+}
 
 int readprocs(const char * fname)
 {
@@ -35,122 +38,170 @@ int readprocs(const char * fname)
     ERROR("could not open file " << fname);
     return 0;
   }
+  double fakes_syst_factor = TMath::Sqrt(45.*45. + 10.*10. + 8.*8.)/100;
+  cout << "systematic factor for fakes: " << fakes_syst_factor << endl;
+
   char buffer[256];
-  int stage = 0;
-  int n = 0;
-  int i = 0;
+
   while (fgets(buffer, 256, infile)) {
-    if (!strncmp(buffer, " Stage ", 7)) {
-      // found a new mass bin, extract stage
-      if (sscanf(buffer, " Stage [%d]", & stage) != 1) {
-	ERROR("could not get stage: " << buffer);
-      }
-      INFO("Stage: " << stage);
-      // reset counter for processes in this mass bin
-      n = 0;
-      i = stage-firststage;
-      if (i < 0) {
-	ERROR("first stage in file must be at least " << firststage);
-	return 0;
-      }
-      else if (i >= nbins) {
-	ERROR("last stage must be less than " << firststage + nbins);
-	return 0;
+    char name[256];
+    vector<proc> current_procs;
+    for (int i = 0; i < nbins; i++) {
+      proc temp;
+      current_procs.push_back(temp);
+    }
+      
+
+    if (sscanf(buffer, "%s %lf +/- %lf | %lf +/- %lf | %lf +/- %lf | %lf +/- %lf | %lf +/- %lf | %lf +/- %lf |",
+	       name,
+	       & current_procs[0].N,
+	       & current_procs[0].staterr,
+	       & current_procs[1].N,
+	       & current_procs[1].staterr,
+	       & current_procs[2].N,
+	       & current_procs[2].staterr,
+	       & current_procs[3].N,
+	       & current_procs[3].staterr,
+	       & current_procs[4].N,
+	       & current_procs[4].staterr,
+	       & current_procs[5].N,
+	       & current_procs[5].staterr) != 13) {
+      ERROR("could not scan line: " << buffer);
+    }
+    for (int i = 0; i < nbins; i++) {
+      current_procs[i].name = strdup_new(name);   
+      // cout << setw(12) << current_procs[i].N << " +/- " << setw(12) << current_procs[i].staterr << "  ";
+    }
+    // cout << endl;
+
+
+    // assign cross section errors
+    if (!strcmp(name, "fakes")) {
+      fill_fakes("fullrun76", "jjmm_m");
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].staterr = fakes[i][1]; // the fakes error 
+	current_procs[i].systfactor = fakes_syst_factor;
       }
     }
-    else if (!strncmp(buffer, " +", 2) || !strncmp(buffer, " *", 2)) {
-      buffer[1] = '+'; // fix for sscanf below, expects +
-      // found a MC or data
-      if (stage == 0) {
-	ERROR("stage is null!");
-	return 0;
+    else if (!strcmp(name, "ttwjets")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.067/0.232;
       }
-      char name[256];
-      if (sscanf(buffer, " + %lf +/- %lf %s", 
-		 & procs[i][n].N, 
-		 & procs[i][n].staterr,
-		 name) != 3) {
-	ERROR("could not scan line: " << buffer);
-	return 0;
+    }
+    else if (!strcmp(name, "ttzjets")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.024/0.2057;
       }
-      procs[i][n].name = strdup_new(name);
-      // assign cross-section error
-      if (!strcmp(name, "WW")) {
-	procs[i][n].systfactor = 1.5/43.;
+    }
+    else if (!strcmp(name, "wwjetsto2l2nu")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.396/5.885;
       }
-      else if (!strcmp(name, "WZ_Q")) {
-	procs[i][n].systfactor = 0.7/18.2;
+    }
+    else if (!strcmp(name, "wzjetsto2l2q")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 1.68/33.60;
       }
-      else if (!strcmp(name, "WZ_Nu")) {
-	procs[i][n].systfactor = 0.7/18.2;
+    }
+    else if (!strcmp(name, "wzjetsto2qlnu")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.4552/7.649;
       }
-      else if (!strcmp(name, "ZZ_nu")) {
-	procs[i][n].systfactor = 0.15/5.9;
+    }
+    else if (!strcmp(name, "wzjetsto3lnu")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.0661/1.1050;
       }
-      else if (!strcmp(name, "ZZ_Q")) {
-	procs[i][n].systfactor = 0.15/5.9;
+    }
+    else if (!strcmp(name, "zzjetsto2l2nu")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.0194/0.3579;
       }
-      else if (!strcmp(name, "ZZ_L")) {
-	procs[i][n].systfactor = 0.15/5.9;
+    }
+    else if (!strcmp(name, "zzjetsto2l2q")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.0650/1.5213;
       }
-      else if (!strcmp(name, "fakes")) {
-	procs[i][n].systfactor = 0.3;
+    }
+    else if (!strcmp(name, "zzjetsto4l")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.00944/0.18076;
       }
-      else if (!strcmp(name, "data")) {
-	procs[i][n].systfactor = 0;
-	procs[i][n].staterr = 0; // fix statistical error
+    }
+    else if (!strcmp(name, "www")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.047;
       }
-      else {
-	procs[i][n].systfactor = 0.5;
+    }
+    else if (!strcmp(name, "wwz")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.056;
       }
-      INFO(n << " -> " << procs[i][n].name << ": " << procs[i][n].N << " +/- " 
-	   << procs[i][n].staterr << " (stat), syst: " << procs[i][n].systfactor);
-      n++;
-      if (n > nMax) {
-	ERROR("Maximum number of processes reached, increase nMax");
+    }
+    else if (!strcmp(name, "wzz")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.060;
+      }
+    }
+    else if (!strcmp(name, "zzz")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.027;
+      }
+    }
+    else if (!strcmp(name, "ttwjets") ||
+	     !strcmp(name, "dyll50")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.05; // higher order Xs without error
+      }
+    }
+    else if (!strcmp(name, "data_doublemu")) {
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].staterr = 0.; // data has no stat error
+	current_procs[i].systfactor = 0.; // data has no syst factor
       }
     }
     else {
-      WARNING("unknown line: " << buffer);
+      for (int i = 0; i < nbins; i++) {
+	current_procs[i].systfactor = 0.5; // leading order Xs without error
+      }
     }
+
+    procs.push_back(current_procs);
+    current_procs.clear();
   }
+
   fclose(infile);
-  return n;
+  cout << "Read " << procs.size() << " processes" << endl;
+  return procs.size();
 }
 
-
-double fakes[nbins][2];
-
-void fill_fakes(const char * sel = "default29", const char * hname = "btag_jjmm_m")
-{
-  // six bins with value and error in each bin
-  get2dstatistics(fake_estimate_2d(sel, hname), fakes);
-}
-
-void summarize_procs(const char * sel = "default29", const char * hname = "btag_jjmm_m")
+void summarize_procs(const char * sel = "fullrun76", const char * hname = "jjmm_m")
 {
   fill_fakes(sel, hname);
-  int maxProc = readprocs("DoublePrompt_MC.txt");
+  int maxProc = readprocs("final_binning_resolved.txt");
   ofstream out("sum_MC.txt");
   for (int i = 0; i < nbins; i++) {
-    out << " Stage [" << i+firststage << "]" << endl;
+    out << " Stage [" << i << "]" << endl;
     double sumN = 0;
     double sumErr2 = 0;
     const char * name = 0;
     for (int j = 0; j < maxProc; j++) {
       name = 0;
       // give a summary at these names
-      if (!strcmp(procs[i][j].name, "TTWplus")) {
-	name = "VVV";
+      if (!strcmp(procs[j][i].name, "ttwjets")) {
+	name = "dyll";
       }
-      else if (!strcmp(procs[i][j].name, "DoublePartonWW")) {
+      if (!strcmp(procs[j][i].name, "wwjetsto2l2nu")) {
 	name = "tt+V";
       }
-      else if (!strcmp(procs[i][j].name, "WW")) {
-	name = "rare";
-      }
-      else if (!strcmp(procs[i][j].name, "data")) {
+      else if (!strcmp(procs[j][i].name, "www")) {
 	name = "VV";
+      }
+      else if (!strcmp(procs[j][i].name, "wminuswminus")) {
+	name = "VVV";
+      }
+      else if (!strcmp(procs[j][i].name, "data_doublemu")) {
+	name = "rare";
       }
       else
 	name = 0;
@@ -159,8 +210,8 @@ void summarize_procs(const char * sel = "default29", const char * hname = "btag_
 	sumN = 0;
 	sumErr2 = 0;
       }
-      sumN += procs[i][j].N;
-      sumErr2 += TMath::Power(procs[i][j].staterr, 2);
+      sumN += procs[j][i].N;
+      sumErr2 += TMath::Power(procs[j][i].staterr, 2);
     }
     // output fake line
     out << " + " << fakes[i][0] << " +/- " << fakes[i][1] << " fakes" << endl;
@@ -175,55 +226,54 @@ void background_systematics()
 {
   const int precision = 3;
   cout.precision(precision);
-  int maxProc = readprocs("sum_MC.txt");
+  int maxProc = readprocs("final_binning_resolved.txt");
   // global systematic error, Table 5 of AN
-  const double systerrglobal = TMath::Sqrt(1.*1.+2.*2+1.*1.+1.*1.+1.*1.+6.*6.)/100.;
-  cout << "global systematic error in %: " << systerrglobal << endl;
+  const double systerrglobal = TMath::Sqrt(0.6*0.6 + 0.1*0.1 + 0.6*0.6 + 3.6*3.6 + 0.2*0.2 + 0.2*0.2 + 1.0*1.0 + 1.5*1.5 + 2.6*2.6 + 5.0*5.0 + 6.0*6.0)/100.;
+  cout << "global systematic error: " << systerrglobal << endl;
   
   double globN = 0;
+  double globErrorCorrelated = 0; // correlated with other bins -> add linearly
   double globErrorUncorrelated2 = 0;
-  double globErrorCorrelated = 0;
   // walk through table bins and columns and summarize
   for (int bin = 0; bin < nbins; bin++) {
     INFO("bin: " << bin);
     double binN = 0;
+    double binErrorCorrelated = 0; // correlated with other bins -> add linearly
     double binErrorUncorrelated2 = 0; 
-    double binErrorCorrelated2 = 0; // correlated with other bins
     for (int n = 0; n < maxProc; n++) {
       double locN = 0;
-      double locErrorCorrelated2 = 0;
+      double locErrorCorrelated = 0; // correlated with other bins -> add linearly
       double locErrorUncorrelated2 = 0;
-      if (strcmp(procs[bin][n].name, "data")) {
-	locN = procs[bin][n].N;
+      if (strcmp(procs[n][bin].name, "data_doublemu")) {
+	locN = procs[n][bin].N;
 	// MC cross-section
-	locErrorCorrelated2 += TMath::Power(procs[bin][n].N*procs[bin][n].systfactor, 2.);
+	locErrorCorrelated += TMath::Sqrt(TMath::Power(procs[n][bin].N*procs[n][bin].systfactor, 2.) // xs uncertainty
+					  + TMath::Power(procs[n][bin].N*systerrglobal, 2.)); // global uncertainty
 	// MC statistics
-	locErrorUncorrelated2 += TMath::Power(procs[bin][n].staterr, 2.);
-	// global systematic error, see above
-	locErrorCorrelated2 += TMath::Power(procs[bin][n].N*systerrglobal, 2.);
+	locErrorUncorrelated2 += TMath::Power(procs[n][bin].staterr, 2.);
       }
-      INFO(setw(7) << procs[bin][n].name 
-	   << ": " << setw(precision+3) << procs[bin][n].N
-	   << " +/- " << setw(precision+3) << TMath::Sqrt(locErrorCorrelated2+locErrorUncorrelated2));
+      INFO(setw(16) << procs[n][bin].name 
+	   << ": " << setw(precision+5) << procs[n][bin].N
+	   << " +/- " << setw(precision+3) << TMath::Sqrt(locErrorCorrelated*locErrorCorrelated+locErrorUncorrelated2));
 
       binN += locN;
-      binErrorCorrelated2 += locErrorCorrelated2;
+      binErrorCorrelated += locErrorCorrelated;
       binErrorUncorrelated2 += locErrorUncorrelated2;
     }
-    INFO(setw(7) << "sum" 
-	 << ": " << setw(precision+3) << binN 
+    INFO(setw(16) << "sum" 
+	 << ": " << setw(precision+5) << binN 
 	 << " +/- " << setw(precision+3) 
-	 << TMath::Sqrt(binErrorUncorrelated2+binErrorCorrelated2)
+	 << TMath::Sqrt(binErrorUncorrelated2+binErrorCorrelated*binErrorCorrelated)
 	 << " [ +/- " << setw(precision+3) 
 	 << TMath::Sqrt(binErrorUncorrelated2) << " (uncorr) "
 	 << " +/- " << setw(precision+3) 
-	 << TMath::Sqrt(binErrorCorrelated2) << " (corr) ]");
+	 << binErrorCorrelated << " (corr) ]");
     globN += binN;
+    globErrorCorrelated += binErrorCorrelated;
     globErrorUncorrelated2 += binErrorUncorrelated2;
-    globErrorCorrelated += TMath::Sqrt(binErrorUncorrelated2);
   }
-  INFO(setw(7) << "sum" 
-       << ": " << setw(precision+3) << globN 
+  INFO(setw(16) << "sum" 
+       << ": " << setw(precision+5) << globN 
        << " +/- " << setw(precision+3) 
        << TMath::Sqrt(globErrorUncorrelated2+globErrorCorrelated*globErrorCorrelated)
        << " [ +/- " << setw(precision+3) 
@@ -233,45 +283,45 @@ void background_systematics()
 
   // compute sum over rows with correlated systematics
   globN = 0;
-  globErrorUncorrelated2 = 0;
   globErrorCorrelated = 0;
+  globErrorUncorrelated2 = 0;
   for (int n = 0; n < maxProc; n++) {
     double procN = 0;
-    double procErrorUncorrelated2 = 0; 
     double procErrorCorrelated = 0; // correlated with other bins
+    double procErrorUncorrelated2 = 0;
     for (int bin = 0; bin < nbins; bin++) {
       double locN = 0;
-      double locErrorCorrelated2 = 0;
+      double locErrorCorrelated = 0;
       double locErrorUncorrelated2 = 0;
-      locN += procs[bin][n].N;						       
-      if (strcmp(procs[bin][n].name, "data")) {
-	locErrorCorrelated2 += TMath::Power(procs[bin][n].N*procs[bin][n].systfactor, 2);  
-	locErrorUncorrelated2 += TMath::Power(procs[bin][n].staterr, 2);                 
-	locErrorCorrelated2 += TMath::Power(procs[bin][n].N*systerrglobal, 2.);
+      locN += procs[n][bin].N;						       
+      if (strcmp(procs[n][bin].name, "data_doublemu")) {
+	locErrorCorrelated += TMath::Sqrt(TMath::Power(procs[n][bin].N*procs[n][bin].systfactor, 2)
+					   + TMath::Power(procs[n][bin].N*systerrglobal, 2.));
+	locErrorUncorrelated2 += TMath::Power(procs[n][bin].staterr, 2);
       }
       procN += locN;
-      procErrorCorrelated += TMath::Sqrt(locErrorCorrelated2);
+      procErrorCorrelated += locErrorCorrelated;
       procErrorUncorrelated2 += locErrorUncorrelated2;
     }
-    INFO(setw(7) << procs[0][n].name 
-	 << ": " << setw(precision+3) << procN 
+    INFO(setw(16) << procs[n][0].name 
+	 << ": " << setw(precision+5) << procN 
 	 << " +/- " << setw(precision+3)
 	 << TMath::Sqrt(procErrorUncorrelated2+procErrorCorrelated*procErrorCorrelated)
 	 << " [ +/- " << setw(precision+3)
 	 << TMath::Sqrt(procErrorUncorrelated2) << " (uncorr) "
 	 << " +/- " << setw(precision+3)
 	 << procErrorCorrelated << " (corr) ]");
-    if (strcmp(procs[0][n].name, "data")) {
+    if (strcmp(procs[n][0].name, "data_doublemu")) {
       globN += procN;
-      globErrorCorrelated = TMath::Sqrt(procErrorCorrelated*procErrorCorrelated+procErrorUncorrelated2);
+      globErrorCorrelated += procErrorCorrelated;
       globErrorUncorrelated2 += procErrorUncorrelated2;
     }
   }
-  INFO(setw(7) << "sum" 
-       << ": " << setw(precision+3) << globN 
-       << " +/- " << setw(precision+3) 
+  INFO(setw(16) << "sum" 
+       << ": " << setw(precision+5) << globN
+       << " +/- " << setw(precision+3)
        << TMath::Sqrt(globErrorUncorrelated2+globErrorCorrelated*globErrorCorrelated)
-       << " [ +/- " << setw(precision+3) 
+       << " [ +/- " << setw(precision+3)
        << TMath::Sqrt(globErrorUncorrelated2) << " (uncorr) "
        << " +/- " << setw(precision+3)
        << globErrorCorrelated << " (corr) ]");
