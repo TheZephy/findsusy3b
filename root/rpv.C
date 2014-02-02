@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 #include "rpv.h"
 
@@ -769,6 +770,30 @@ void get2dstatistics(const TH2D * h2, double values[6][2])
   }
   cout << "Total: " << N << " +/- " << TMath::Sqrt(e2) << endl;
   cout << "From histo: " << h2->Integral() << endl;
+}
+
+void resolve_final_binning(bool write = true) {
+  plot2("jjmm_m");
+  double contents[6][2]; // 6 final bins, 2 for value and error
+  ofstream out("final_binning_resolved.txt");
+
+  for (Int_t i = 0; i < gMaxProcess; i++) {
+    Int_t process = gOrder[gPadNr][i];
+
+    cout << "Process: " << gProcess[process].fname << endl;
+    get2dstatistics(gHisto2[process], contents);
+
+    if (write) {
+      double sum[] = {0, 0};
+      out << setw(24) << gProcess[process].fname << " ";
+      for (Int_t j = 0; j < 6; j++) {
+	sum[0] += contents[j][0];
+	sum[1] += contents[j][1];
+	out << setw(12) << contents[j][0] << " +/- " << setw(12) << contents[j][1] << " | ";
+      }
+      out << setw(6) << sum[0] << " +/- " << setw(10) << sum[1] << endl;
+    }
+  }
 }
 
 void paperplots(const char * sel)
