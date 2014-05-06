@@ -1233,8 +1233,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   }
   global_weight = 1.;
 
-  Fill("cutflow", "weight");
-  DEBUG("cutflow " << "weight");
+  // Fill("cutflow", "weight");
+  // DEBUG("cutflow " << "weight");
 
   //////////////////////////////////////////////////////////////////////
   // Split RPV SUSY in RPV signal and RPV background
@@ -1257,7 +1257,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     if ((fInputType == "signal" && !fIsSignal) || (fInputType == "background" && fIsSignal))
       return;
   }
-  Fill("cutflow", "signal");
+  // Fill("cutflow", "signal");
 
   //////////////////////////////////////////////////////////////////////
   // filter data on luminosity section - typically golden JSON file
@@ -1275,8 +1275,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   }
 
 
-  Fill("cutflow", "evt&lumifilter");
-  DEBUG("cutflow " << "evt&lumifilter");
+  // Fill("cutflow", "evt&lumifilter");
+  // DEBUG("cutflow " << "evt&lumifilter");
 
   //////////////////////////////////////////////////////////////////////
   // pileup reweighting
@@ -1286,8 +1286,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     global_weight *= weight;
   }
 
-  Fill("cutflow", "pileup rew.");
-  DEBUG("cutflow " << "pileup rew.");
+  // Fill("cutflow", "pileup rew.");
+  // DEBUG("cutflow " << "pileup rew.");
 
   //////////////////////////////////////////////////////////////////////
   // Redo skimmer cuts
@@ -1320,8 +1320,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
       return;
     }
   }
-  Fill("cutflow", "redo skim");
-  DEBUG("cutflow " << "redo skim");
+  // Fill("cutflow", "redo skim");
+  // DEBUG("cutflow " << "redo skim");
 
   //////////////////////////////////////////////////////////////////////
   // Trigger selection
@@ -1355,8 +1355,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     BTagEfficiencyMap();
   }
 
-  Fill("cutflow", "jetsmear");
-  DEBUG("cutflow " << "jetsmear");
+  // Fill("cutflow", "jetsmear");
+  // DEBUG("cutflow " << "jetsmear");
 
 
   ///////////////////////////////////////////////////////////
@@ -1447,9 +1447,9 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     // muonTriggerFilters.push_back("hltDiMuonGlb17Glb8DzFiltered0p2"); // HLT_Mu17_Mu8_v
     // muonTriggerFilters.push_back("hltL3fL1DoubleMu10MuOpenL1f0L2f10L3Filtered17"); // HLT_Mu17_Mu8_v old version
     muonTriggerFilters.push_back("hltDiMuonGlb17Trk8DzFiltered0p2"); // HLT_Mu17_TkMu8_v
-    //muonTriggerFilters.push_back("hltDiMuonMu13Mu8DzFiltered0p2"); // HLT_Mu13_Mu8_v
+    // muonTriggerFilters.push_back("hltDiMuonMu13Mu8DzFiltered0p2"); // HLT_Mu13_Mu8_v
 
-    TriggerMatchingComparison(i, "def");
+    // TriggerMatchingComparison(i, "def");
 
     if ( !TriggerMatched(i, muonTriggerFilters) )
       continue;
@@ -1516,7 +1516,7 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   // H/E	hadronicOverEm()	< 0.05
   // shower shape	sigmaIetaIeta()		< 0.011 (EB), < 0.03 (EE)
   // hollow cone track isolation	trkSumPtHollowConeDR04()	< 2.0 + 0.001 x Et + 0.0167 x rho25 (EB), < 2.0 + 0.001 x Et + 0.032 x rho25 (EE)
-  // Jurrasic ECAL Isolation	ecalRecHitSumEtConeDR04()	< 4.2 + 0.006 x Et + 0.183 x rho25 (EB), < 4.2 + 0.006 x Et + 0.090 x rho25 (EE)
+  // Jurrasic ECAL Isolation	ecalRecHitSumEtConeDR04()	< 4.2 + 0.006 x Et + 0.183 x rho25 (EB),< 4.2 + 0.006 x Et + 0.090 x rho25 (EE)
   // tower-based HCAL Isolation		hcalTowerSumEtConeDR04()	< 2.2 + 0.0025 x Et + 0.062 x rho25 (EB), < 2.2 + 0.0025 x Et + 0.180 x rho25 (EE)
 
   // Additionally apply spike cleaning: sigmaIEtaIEta > 0.001 and sigmaIPhiIPhi > 0.001 in Barrel region only
@@ -1572,8 +1572,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   if (nMuon < 2 || muo_pt[muons[0]] <= 20. || muo_pt[muons[1]] <= 15.) {
     return;
   }
-  Fill("cutflow", "loose muon");
-  DEBUG("cutflow " << "loose muon");
+  Fill("cutflow", "basic muon selection");
+  DEBUG("cutflow " << "basic muon selection");
 
   // for cross-checks: loop over muons, find two muons compatible with z mass
   // and plot number of vertices, mass, number of muons, number of jets, ...
@@ -1628,14 +1628,15 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
 
   //////////////////////////////////////////////////////////////////////
   // loose jet id
+  Fill("Jet_n", fJets);
   Fill("Jet_pt0", fJets > 0 ? pfjet_pt[jets[0]] : 0);
   Fill("Jet_pt1", fJets > 1 ? pfjet_pt[jets[1]] : 0);
   Fill("Jet_pt", fJets > 0 ? pfjet_pt[jets[0]] : 0, fJets > 1 ? pfjet_pt[jets[1]] : 0);
   if (fJets < 2 || pfjet_pt[jets[0]] <= 30. || pfjet_pt[jets[1]] <= 30.) {
     return;
   }
-  Fill("cutflow", "loose jet");
-  DEBUG("cutflow " << "loose jet");
+  Fill("cutflow", "jet quality criteria");
+  DEBUG("cutflow " << "jet quality criteria");
 
 
 
@@ -1681,8 +1682,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     fSingleFakeWeight = w0 + w1;
     // double orthogonal sample
     global_weight *= w0 * w1;
-    Fill("cutflow", "doublefake");
-    DEBUG("cutflow " << "doublefake");
+    // Fill("cutflow", "doublefake");
+    // DEBUG("cutflow " << "doublefake");
   }
   else if (fAnalysisType == "singlefake") {
     // require one loose muon which is not tight and one tight muon
@@ -1718,8 +1719,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     }
     // event weight
     global_weight *= fFakeRate[0]/(1-fFakeRate[0]);
-    Fill("cutflow", "singlefake");
-    DEBUG("cutflow " << "singlefake");
+    // Fill("cutflow", "singlefake");
+    // DEBUG("cutflow " << "singlefake");
   }
   else if (fAnalysisType == "default") {
     if (nMuonsTight != 2) {
@@ -1729,8 +1730,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     muon_dR.push_back(tight_dR[0]);
     fMuoId[1] = tight_muons[1];
     muon_dR.push_back(tight_dR[1]);
-    Fill("cutflow", "default");
-    DEBUG("cutflow " << "default");
+    // Fill("cutflow", "default");
+    // DEBUG("cutflow " << "default");
   }
   else {
     THROW("Unknown analysis type encountered: " + fAnalysisType);
@@ -1769,8 +1770,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
     return;
   }
 
-  Fill("cutflow", "muonID");
-  DEBUG("cutflow " << "muonID");
+  Fill("cutflow", "muon quality criteria");
+  DEBUG("cutflow " << "muon quality criteria");
 
   //////////////////////////////////////////////////////////////////////
   // jet smearing calculation (JER)
@@ -1807,8 +1808,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   if (m_mumu < 15.) {
     return;
   }
-  Fill("cutflow", "m_mumu");
-  DEBUG("cutflow " << "m_mumu");
+  Fill("cutflow", "m_{#mu#mu}");
+  DEBUG("cutflow " << "m_{#mu#mu}");
 
   for (int i = 0; i < 2; i++) {
     vector <TString> muonTriggerFilters;
@@ -1827,11 +1828,12 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
 	    match[l] = true;
       }
     }
-    if (match[0] || match[1]) Fill("dycut_matched", "Mu17_Mu8");
-    if (match[2]) Fill("dycut_matched", "Mu17_TkMu8");
-    if ((match[0] || match[1]) && match[2]) Fill("dycut_matched", "Mu17_Mu8 AND Mu17_TkMu8");
-    if ((match[0] || match[1]) && !match[2]) Fill("dycut_matched", "ONLY Mu17_Mu8");
-    if (!(match[0] || match[1]) && match[2]) Fill("dycut_matched", "ONLY Mu17_TkMu8");
+    if (match[0] || match[1]) Fill("matched", "Mu17_Mu8");
+    if (match[2]) Fill("matched", "Mu17_TkMu8");
+    if ((match[0] || match[1]) && match[2]) Fill("matched", "Mu17_Mu8 AND Mu17_TkMu8");
+    if ((match[0] || match[1]) || match[2]) Fill("matched", "Mu17_Mu8 OR Mu17_TkMu8");
+    if ((match[0] || match[1]) && !match[2]) Fill("matched", "ONLY Mu17_Mu8");
+    if (!(match[0] || match[1]) && match[2]) Fill("matched", "ONLY Mu17_TkMu8");
   }
 
 
@@ -1899,8 +1901,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   Fill("DeltaPhi", delta_phi);
   if (delta_phi < fDeltaPhiMin)
     return;
-  Fill("cutflow", "#Delta#phi");
-  DEBUG("cutflow " << "#Delta#phi");
+  // Fill("cutflow", "#Delta#phi");
+  // DEBUG("cutflow " << "#Delta#phi");
 
   // fill some histograms
   Fill("muo_n_precut", muo_n);
@@ -1923,8 +1925,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   if (fIsBTagged) {
     return;
   }
-  Fill("cutflow", "btag veto");
-  DEBUG("cutflow " << "btag veto");
+  Fill("cutflow", "b-jet veto");
+  DEBUG("cutflow " << "b-jet veto");
 
   Fill("btag_m_mumu", m_mumu);
   Fill("btag_m_gaugino", GauginoMass);
@@ -1941,8 +1943,8 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   if ((muo_charge[fMuoId[0]]*muo_charge[fMuoId[1]]) == -1) {
     return;
   }
-  Fill("cutflow", "charge");
-  DEBUG("cutflow " << "charge");
+  Fill("cutflow", "same charge #mu");
+  DEBUG("cutflow " << "same charge mu");
 
   Fill("m_mumu", m_mumu);
   Fill("m_gaugino", GauginoMass);
@@ -1978,6 +1980,31 @@ void Analysis::Analyze (Long64_t & jentry, EventFilter & hcalevtcfg, lumi::RunLu
   // fill output tree
   if (fFill && fRunTag == "0") {
     fOutputTree.Fill();
+  }
+  if (global_run == 207477 && lumi_section == 96 && global_event == 97527297) {
+    INFO("1. Muon");
+    INFO("px: " << muo_px[fMuoId[0]]);
+    INFO("py: " << muo_py[fMuoId[0]]);
+    INFO("pz: " << muo_pz[fMuoId[0]]);
+    INFO("px: " << muo_E[fMuoId[0]]);
+
+    INFO("2. Muon");
+    INFO("px: " << muo_px[fMuoId[1]]);
+    INFO("py: " << muo_py[fMuoId[1]]);
+    INFO("pz: " << muo_pz[fMuoId[1]]);
+    INFO("px: " << muo_E[fMuoId[1]]);
+
+    INFO("1. Jet");
+    INFO("px: " << pfjet_px[jets[0]]);
+    INFO("py: " << pfjet_py[jets[0]]);
+    INFO("pz: " << pfjet_pz[jets[0]]);
+    INFO("px: " << pfjet_E [jets[0]]);
+
+    INFO("1. Jet");
+    INFO("px: " << pfjet_px[jets[1]]);
+    INFO("py: " << pfjet_py[jets[1]]);
+    INFO("pz: " << pfjet_pz[jets[1]]);
+    INFO("px: " << pfjet_E [jets[1]]);
   }
 }
 
@@ -2186,9 +2213,16 @@ void Analysis::CreateHistograms()
   CreateHisto("relIsoInJet", "muon relative isolation inside of jet", 200, 0, 10);
   CreateHisto("nMuon_matched", "muon trigger matching", 10, -0.5, 9.5);
 
-  CreateHisto("def_matched", "", 8, -0.5, 7.5);
-  CreateHisto("dycut_matched", "", 5, -0.5, 4.5);
-  CreateHisto("btag_matched", "", 5, -0.5, 4.5);
+  CreateHisto("matched", "", 5, -0.5, 4.5);
+  // initialize bins of "matched histogram to retain order of bins
+  // disregarding of which type of event is encountered first
+  histo[Form("%s_matched", fRunTag.c_str())]->Fill("Mu17_Mu8", 0.);
+  histo[Form("%s_matched", fRunTag.c_str())]->Fill("Mu17_TkMu8", 0.);
+  histo[Form("%s_matched", fRunTag.c_str())]->Fill("Mu17_Mu8 AND Mu17_TkMu8", 0.);
+  histo[Form("%s_matched", fRunTag.c_str())]->Fill("Mu17_Mu8 OR Mu17_TkMu8", 0.);
+  histo[Form("%s_matched", fRunTag.c_str())]->Fill("ONLY Mu17_Mu8", 0.);
+  histo[Form("%s_matched", fRunTag.c_str())]->Fill("ONLY Mu17_TkMu8", 0.);
+  histo[Form("%s_matched", fRunTag.c_str())]->Reset();
 
   // Object selection: jets
   CreateHisto("nPfJet_pt", "jet p_{T}", 1000, 0, 1000);
@@ -2258,7 +2292,7 @@ void Analysis::CreateHistograms()
   CreateHisto("nTL_jetdphi", "#Delta#phi between leading jet and loose muon", 315, 0, 3.15);
   CreateHisto("nTL_mt", "m_{T}(#mu, MET)@GeV", 500, 0, 500);
   CreateHisto("nTL_mumudz", "#Delta dz between 2 muons", 1000, 0, 1.);
-  CreateHisto("nTL_zmass", "m(#mu^{+}, #mu^{-})@GeV", 500, 0, 500);
+  CreateHisto("nTL_zmass", "m(#mu, #mu)@GeV", 500, 0, 500);
   CreateHisto("nTL_njets", "number of jets", 10, -0.5, 9.5);
 
   CreateHisto("TL_met", "MET@GeV", 100, 0, 500);
@@ -2269,7 +2303,7 @@ void Analysis::CreateHistograms()
   CreateHisto("TL_jetdphi", "#Delta#phi between leading jet and loose muon", 315, 0, 3.15);
   CreateHisto("TL_ht", "event HT@GeV", 150, 0, 1500);
   CreateHisto("TL_nloose", "number of loose muons", 5, 0, 5);
-  CreateHisto("TL_zmass", "m(#mu^{+}, #mu^{-})@GeV", 500, 0, 500);
+  CreateHisto("TL_zmass", "m(#mu, #mu)@GeV", 500, 0, 500);
   CreateHisto("TL_mumudz", "#Delta dz between 2 muons", 1000, 0, 1.);
   CreateHisto("TL_mt", "m_{T}(#mu, MET)@GeV", 500, 0, 500);
   CreateHisto("TL_st", "event ST@GeV", 100, 0, 1000);
@@ -2292,9 +2326,10 @@ void Analysis::CreateHistograms()
   CreateHisto("Muon_pt", "#mu p_{T}:#mu p_{T}@GeV", 20, 0, 100, 20, 0, 100);
   CreateHisto("minMuon_dR", "Smaller dR of the 2 muons", 100, 0, 5);
   CreateHisto("maxMuon_dR", "Larger dR of the 2 muons", 100, 0, 5);
-  CreateHisto("Jet_pt0", "jet p_{T}:jet p_{T}@GeV", 1000, 0, 1000);
-  CreateHisto("Jet_pt1", "jet p_{T}:jet p_{T}@GeV", 1000, 0, 1000);
-  CreateHisto("Jet_pt", "jet p_{T}:jet p_{T}@GeV", 20, 0, 100, 20, 0, 100);
+  CreateHisto("Jet_n", "number of jets", 11, -0.5, 10.5);
+  CreateHisto("Jet_pt0", "jet p_{T}@GeV", 1000, 0, 1000);
+  CreateHisto("Jet_pt1", "jet p_{T}@GeV", 1000, 0, 1000);
+  CreateHisto("Jet_pt", "jet p_{T,1}@GeV:jet p_{T,2}@GeV", 20, 0, 100, 20, 0, 100);
 
   CreateHisto("btag_eff", "CSV LMT, b, c, light", 6, -0.5, 5.5);
   CreateHisto("pfmet_old", "Particle flow MET (before smearing)@GeV", 1000, 0, 1000);
@@ -2307,25 +2342,25 @@ void Analysis::CreateHistograms()
 
   // create individual histograms
   CreateHisto("DeltaPhi", "#Delta#phi(#mu_{1}, gaugino)", 315, 0., 3.15);
-  CreateHisto("m_mumu", "m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("m_mumu_precut", "m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
+  CreateHisto("m_mumu", "m(#mu, #mu)@GeV", 500, 0, 1000);
+  CreateHisto("m_mumu_precut", "m(#mu, #mu)@GeV", 500, 0, 1000);
   CreateHisto("m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})@GeV", 500, 0, 1000);
   CreateHisto("m_gaugino_precut", "gaugino mass m(#mu_{1},j_{1},j_{2})@GeV", 500, 0, 1000);
   CreateHisto("m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})@GeV", 2000, 0, 2000);
   CreateHisto("m_smuon_precut", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})@GeV", 2000, 0, 2000);
   CreateHisto("muo_n_precut", "Number of muons@GeV", 20, -0.5, 19.5);
-  CreateHisto("m_mumu_zpeak", "Z-Peak m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
+  CreateHisto("m_mumu_zpeak", "Z-Peak m(#mu, #mu)@GeV", 500, 0, 1000);
 
-  CreateHisto("CR1_m_mumu", "CR1 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("CR2_m_mumu", "CR2 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("CR3_m_mumu", "CR3 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
-  CreateHisto("CR4_m_mumu", "CR4 m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
+  CreateHisto("CR1_m_mumu", "m(#mu, #mu)@GeV", 500, 0, 1000);
+  CreateHisto("CR2_m_mumu", "m(#mu, #mu)@GeV", 500, 0, 1000);
+  CreateHisto("CR3_m_mumu", "m(#mu, #mu)@GeV", 500, 0, 1000);
+  CreateHisto("CR4_m_mumu", "m(#mu, #mu)@GeV", 500, 0, 1000);
   CreateHisto("CR4_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})@GeV", 500, 0, 1000);
   CreateHisto("CR4_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})@GeV", 500, 0, 2000);
-  CreateHisto("CR5_m_mumu", "CR5 m(#mu^{+}, #mu^{-})@GeV@GeV", 500, 0, 1000);
+  CreateHisto("CR5_m_mumu", "m(#mu, #mu)@GeV@GeV", 500, 0, 1000);
   CreateHisto("CR5_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})@GeV", 500, 0, 1000);
   CreateHisto("CR5_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})@GeV", 500, 0, 2000);
-  CreateHisto("CR6_m_mumu", "CR6 m(#mu^{+}, #mu^{-})@GeV@GeV", 500, 0, 1000);
+  CreateHisto("CR6_m_mumu", "m(#mu, #mu)@GeV@GeV", 500, 0, 1000);
   CreateHisto("CR6_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})@GeV", 500, 0, 1000);
   CreateHisto("CR6_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})@GeV", 500, 0, 2000);
 
@@ -2338,15 +2373,15 @@ void Analysis::CreateHistograms()
   const double bins[] = { 0, 300, 700, 5000 };
   const int nMax = sizeof(bins)/sizeof(double)-1;
   CreateHisto("jjmm_m", "smuon mass m(#mu_{0},#mu_{1},jets)", nMax, bins, nMax, bins);
-  CreateHisto("m_smu_chi", "m(#chi): m(#tilde{#mu})", 110, 0, 2200, 25, 0, 500);
+  CreateHisto("m_smu_chi", "m(#chi):m(#tilde{#mu})", 50, 0, 2000, 25, 0, 2000);
   CreateHisto("muo_n", "Number of muons", 30, 0, 30);
   CreateHisto("ht", "HT@GeV", 100, 0, 500);
 
   // after btag cut
-  CreateHisto("btag_m_mumu", "m(#mu^{+}, #mu^{-})@GeV", 500, 0, 1000);
+  CreateHisto("btag_m_mumu", "m(#mu, #mu)@GeV", 500, 0, 1000);
   CreateHisto("btag_m_gaugino", "gaugino mass m(#mu_{1},j_{1},j_{2})@GeV", 500, 0, 1000);
   CreateHisto("btag_m_smuon", "smuon mass m(#mu_{0},#mu_{1},j_{1},j_{2})@GeV", 500, 0, 2000);
-  CreateHisto("btag_m_smu_chi", "m(#chi): m(#tilde{#mu})@GeV", 110, 0, 2200, 25, 0, 500);
+  CreateHisto("btag_m_smu_chi", "m(#chi):m(#tilde{#mu})", 50, 0, 2000, 25, 0, 2000);
   CreateHisto("btag_ht", "HT@GeV", 100, 0, 500);
   CreateHisto("btag_jjmm_m", "smuon mass m(#mu_{0},#mu_{1},jets)", nMax, bins, nMax, bins);
 
