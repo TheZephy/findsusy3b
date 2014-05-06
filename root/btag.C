@@ -47,7 +47,9 @@ void calculate_b_efficiency()
   h1_b_eff->SetMarkerStyle(8);
   h1_b_eff->SetMarkerSize(.7);
   h1_b_eff->SetTitle("");
-  h1_b_eff->GetYaxis()->SetTitle("b-tag efficiency");
+  h1_b_eff->GetYaxis()->SetTitle("b-tagging efficiency");
+  h1_b_eff->GetXaxis()->SetTitle("transverse momentum of jets [GeV]");
+  h1_b_eff->GetXaxis()->CenterTitle();
   h1_b_eff->GetYaxis()->SetTitleFont(62);
   h1_b_eff->GetYaxis()->SetTitleSize(0.04);
   h1_b_eff->GetYaxis()->SetLabelFont(62);
