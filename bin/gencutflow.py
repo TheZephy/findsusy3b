@@ -53,7 +53,7 @@ def main():
 
     # grep input files for cut flow
     files = " ".join(args)
-    command = "grep 'Fill(\"cutflow\"' " + files  + " | cut -d'\"' -f4"
+    command = "grep 'Fill(\"cutflow\"' " + files  + " | grep -v // | cut -d'\"' -f4"
     stages = ara.getCommandOutput2(command)
     # insert C++ quotes 
     stages = '"' + '","'.join(stages.splitlines()) + '"'
