@@ -77,7 +77,7 @@ int readprocs(const char * fname)
 
     // assign cross section errors
     if (!strcmp(name, "fakes")) {
-      fill_fakes("fullrun76", "jjmm_m");
+      fill_fakes("fullrun75", "jjmm_m");
       for (int i = 0; i < nbins; i++) {
 	current_procs[i].staterr = fakes[i][1]; // the fakes error 
 	current_procs[i].systfactor = fakes_syst_factor;
@@ -175,23 +175,57 @@ int readprocs(const char * fname)
   return procs.size();
 }
 
+void compute_xsec_uncertaintiy() {
+  int maxProc = readprocs("final_binning_resolved.txt");
+
+  double N_sum = 0; // Sum of all events
+  double N_unc = 0; // Sum of events per process times xsec uncertainty
+
+  for (int j = 0; j < maxProc; j++) {
+
+    if (!strcmp(procs[j][0].name, "fakes") ||
+	!strcmp(procs[j][0].name, "data_doublemu"))
+	continue;
+    
+    double N_proc = 0;
+    for (int i = 0; i < nbins; i++) {
+      N_proc += procs[j][i].N;
+    }
+    N_unc += N_proc * procs[j][0].systfactor;
+    N_sum += N_proc;
+    INFO(procs[j][0].name << " " << N_proc *procs[j][0].systfactor );
+  }
+
+  INFO("Number of events: " << N_sum);
+  INFO("Sum of all processes times xsec uncertainty: " << N_unc);
+  INFO("Average xsec uncertainty: " << N_unc/N_sum);
+}
+
 void summarize_procs(const char * sel = "fullrun76", const char * hname = "jjmm_m")
 {
   fill_fakes(sel, hname);
   int maxProc = readprocs("final_binning_resolved.txt");
+  const double systerrglobal = TMath::Sqrt(0.6*0.6 + 0.1*0.1 + 0.6*0.6 + 3.6*3.6 + 0.2*0.2 + 0.2*0.2 + 1.0*1.0 + 1.5*1.5 + 2.6*2.6 + 5.0*5.0 + 6.0*6.0)/100.;
+  double fakes_syst_factor = TMath::Sqrt(45.*45. + 10.*10. + 8.*8.)/100;
+  
+
   ofstream out("sum_MC.txt");
   for (int i = 0; i < nbins; i++) {
     out << " Stage [" << i << "]" << endl;
     double sumN = 0;
-    double sumErr2 = 0;
+    double sumErr2 = 0; // statistical errors
+    double sumErr = 0; // systematic errors
     const char * name = 0;
     for (int j = 0; j < maxProc; j++) {
       name = 0;
       // give a summary at these names
+      if (!strcmp(procs[j][i].name, "fakes")) 
+	continue;
+
       if (!strcmp(procs[j][i].name, "ttwjets")) {
 	name = "dyll";
       }
-      if (!strcmp(procs[j][i].name, "wwjetsto2l2nu")) {
+      else if (!strcmp(procs[j][i].name, "wwjetsto2l2nu")) {
 	name = "tt+V";
       }
       else if (!strcmp(procs[j][i].name, "www")) {
@@ -206,15 +240,18 @@ void summarize_procs(const char * sel = "fullrun76", const char * hname = "jjmm_
       else
 	name = 0;
       if (name != 0) {
-	out << " + " << sumN << " +/- " << TMath::Sqrt(sumErr2) << " " << name << endl;
+	out << " + " << sumN << " +/- " << TMath::Sqrt(sumErr2 + sumErr*sumErr) << " " << name << endl;
 	sumN = 0;
 	sumErr2 = 0;
+	sumErr = 0;
       }
       sumN += procs[j][i].N;
       sumErr2 += TMath::Power(procs[j][i].staterr, 2);
+      sumErr += TMath::Sqrt(TMath::Power(procs[j][i].N*procs[j][i].systfactor, 2.) // xs uncertainty
+					  + TMath::Power(procs[j][i].N*systerrglobal, 2.)); // global uncertainty
     }
     // output fake line
-    out << " + " << fakes[i][0] << " +/- " << fakes[i][1] << " fakes" << endl;
+    out << " + " << fakes[i][0] << " +/- " << TMath::Sqrt(fakes[i][1] * fakes[i][1] + fakes[i][0] * fakes[i][0] * fakes_syst_factor * fakes_syst_factor) << " fakes" << endl;
     // output data line
     out << " * " << sumN << " +/- " << TMath::Sqrt(sumErr2) << " data" << endl;
     out << "------------------------------------------------------" << endl;
