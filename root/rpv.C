@@ -143,7 +143,8 @@ void xscurve(const char * fname = "scan_8TeV_ud_smuon.txt")
   gPad->SetLogy();
   TH2F * hframe = new TH2F("hframe", "frame", 1, m_min, m_max, 1, xs_min, xs_max);
   setopt(hframe);
-  hframe->SetXTitle("m(#bf{#tilde{#mu}^{#pm}}) [GeV]");
+  hframe->GetXaxis()->CenterTitle();
+  hframe->SetXTitle("smuon mass [GeV]");
   hframe->SetYTitle(Form("#sigma(%c %c #rightarrow #bf{#tilde{#mu}^{#pm}}) [pb]",
 			 quarks[TMath::Abs(p1)-1], quarks[TMath::Abs(p2)-1]));
   hframe->Draw();
