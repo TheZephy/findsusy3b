@@ -170,8 +170,10 @@ void logy();
 void grid(Int_t xy = 11); // turn on grid in plots (10 => X, 1 => Y)
 void nogrid(); // turn off grid in plots
 void rebin(Int_t nbins);
-void legend(Double_t mincontent = 0.01, Int_t posi = 1, Double_t miny = -1);
-TArrow * arrow(Double_t position, Int_t neighbourbins = 0);
+void legend(Double_t mincontent = 0.01, Int_t posi = 1, Double_t miny = -1, Int_t col = 1);
+double GetXNDC(double x);
+double GetYNDC(double y);
+TArrow * arrow(Double_t position, Int_t neighbourbins = 0, const char * direction = "none", Double_t height = 0.5);
 void print(const char * hname = 0);
 void pprint(const char * hname = 0);
 
@@ -179,6 +181,11 @@ void pprint(const char * hname = 0);
 void version(Int_t version);
 void setup(const char * configFileName = "Overview.cfg");
 void MakeCanvas(Int_t dx = 1, Int_t dy = 2);
+void MakeRatioCanvas(); // create a canvas that allows for a ratio plot below
+void ratio(); // do the ratio plot for a drawn histogram (only with MakeRatioCanvas())
+void drawoverflow();
+void lumi();
+void drawperiod(Int_t posi = -1);
 void title(const char * title = 0);
 void shiftbin(Int_t nbins);
 void mirror();
@@ -204,6 +211,7 @@ char * strdup_new(const char * text);
 void setopt(TStyle * style);
 void setopt(TCanvas * canvas);
 void setopt(TH1 * histo);
+void setopt(TH2 * histo);
 void setopt(TLegend * leg);
 void setopt(TGraph * gr);
 const char * getpath(Int_t period);
