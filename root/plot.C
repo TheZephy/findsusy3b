@@ -14,6 +14,7 @@ using namespace std;
 #include "TROOT.h"
 #include "TIterator.h"
 #include "THashList.h"
+#include "TPolyLine.h"
 
 #include "plot.h"
 
@@ -49,7 +50,7 @@ const char    * gSubDir = ".";
 const char    * gBase = 0;
 Bool_t          gIsColor = kTRUE;
 Int_t           gGrid = kFALSE;
-Bool_t          gMoveOverflow = kFALSE;
+Bool_t          gMoveOverflow = kTRUE;
 Bool_t          gHasOverflow[gMaxPad] = { 0 };
 TH1D          * gFitSignal = 0;
 TH1D          * gFitBackground = 0;
@@ -74,6 +75,7 @@ void setopt(TStyle * style)
   style->SetPalette(1);
   style->SetOptTitle(0);          // don't show histogram title
   style->SetPadLeftMargin(0.15);
+
   return;
   // style options
   style->SetStatColor(10);        // white background for statistics box
@@ -116,6 +118,34 @@ void setopt(TCanvas * canvas)
   canvas->SetBorderMode(0);
 }
 
+void setoptratio(TH1 * ratio) {
+  ratio->GetYaxis()->SetTitle("Data/MC Ratio");
+  ratio->GetYaxis()->CenterTitle();
+  ratio->GetYaxis()->SetNdivisions(504);
+
+  // default text size options
+  // ratio->GetYaxis()->SetTitleOffset(0.45);
+  // ratio->GetYaxis()->SetTitleSize(0.10);
+  // ratio->GetYaxis()->SetLabelSize(0.11);
+
+  // bold font text size options
+  ratio->GetYaxis()->SetTitleOffset(0.58);
+  ratio->GetYaxis()->SetTitleSize(0.11);
+  ratio->GetYaxis()->SetLabelOffset(0.007);
+  ratio->GetYaxis()->SetLabelSize(0.15);
+
+  ratio->GetXaxis()->CenterTitle();
+
+  // default text size options
+  // ratio->GetXaxis()->SetTitleOffset(1.05);
+  // ratio->GetXaxis()->SetTitleSize(0.10);
+  // ratio->GetXaxis()->SetLabelSize(0.11);
+
+  ratio->GetXaxis()->SetTitleOffset(0.98);
+  ratio->GetXaxis()->SetTitleSize(0.14);  
+  ratio->GetXaxis()->SetLabelSize(0.15);
+}
+
 void setopt(TH1 * histo)
 {
   // set histo default options
@@ -148,6 +178,39 @@ void setopt(TH1 * histo)
   // histo->GetXaxis()->CenterTitle();
 }
 
+void setopt(TH2 * histo)
+{
+  // set histo default options
+  histo->SetTitleOffset(1.3, "Y"); // title offset
+
+  // thesis plots
+  histo->SetTitleOffset(1.1, "X"); // title offset
+  histo->SetLabelSize(0.05, "X"); // label size
+  histo->SetLabelSize(0.05, "Y"); // label size
+  histo->SetLabelSize(0.05, "Z"); // label size
+
+  histo->SetLabelFont(62, "X"); // label font
+  histo->SetLabelFont(62, "Y"); // label font
+  histo->SetLabelFont(62, "Z"); // label font
+
+  histo->SetTitleSize(0.05, "X");  // title size
+  histo->SetTitleSize(0.05, "Y");  // title size
+  histo->SetTitleSize(0.05, "Z");  // title size
+
+  histo->SetTitleFont(62, "X"); // title font
+  histo->SetTitleFont(62, "Y"); // title font
+  histo->SetTitleFont(62, "Z"); // title font
+
+  return; // move according to preference
+  // histo->SetTitleOffset(1.1, "Z"); // title offset
+  // histo->SetMarkerStyle(8);
+  // histo->SetMarkerSize(1.1);
+  // histo->GetXaxis()->SetTitleColor(kBlack);
+  // histo->GetYaxis()->SetTitleColor(kBlack);
+  // histo->GetXaxis()->CenterTitle();
+}
+
+
 void setopt(TLegend * leg)
 {
   // set legend default option
@@ -158,10 +221,10 @@ void setopt(TLegend * leg)
 
 void setopt(TGraph * gr)
 {
-  return;
   TH1F * histo = gr->GetHistogram();
   if (histo != 0)
     setopt(histo);
+  return;
   gr->SetMarkerStyle(8);
   gr->SetMarkerSize(1.1);
 }
@@ -720,6 +783,8 @@ void MakeCanvas(Int_t dx, Int_t dy)
   else {
     ysize = 600;
     xsize = (Int_t) (600 * TMath::Sqrt(2.));
+    // xsize = 1200;
+    // ysize = (Int_t) (600 * TMath::Sqrt(2.)/2);
   }
 
   // max number of subpads: 3x2
@@ -759,7 +824,6 @@ void MakeRatioCanvas() {
   setopt(gCanvas);
 
   // make subpads and activate first pad
-  gPadNr = 0;
   TPad * pad1 = new TPad("analysisplotpad","pad1", 0, 0.25, 1, 1);
   pad1->SetBottomMargin(0);
   pad1->SetLeftMargin(0.15);
@@ -767,16 +831,19 @@ void MakeRatioCanvas() {
   pad1->Draw();
 
   gCanvas->cd();
-  TPad * pad2 = new TPad("analysisratiopad","pad1", 0, 0, 1, 0.25);
+  TPad * pad2 = new TPad("analysisratiopad","pad2", 0, 0, 1, 0.25);
   pad2->SetTopMargin(0);
-  pad2->SetBottomMargin(0.24);
+  pad2->SetBottomMargin(0.30); // default: 24 for small text; 30 for bold text
   pad2->SetLeftMargin(0.15);
   pad2->SetRightMargin(0.05);
   pad2->SetNumber(2);
   pad2->Draw();
 
   nPad = 2;
-  pad1->cd();  
+  
+  //pad1->cd();
+  gPadNr = 0;
+  gCanvas->cd(gPadNr+1);
 }
 
 void MakeCanvas2(Int_t dy, Double_t percent = 0.8)
@@ -1057,21 +1124,29 @@ const char * GetYTitle(const TH1D * histo)
     if (unit) {
       if (gGerman) {
 	title = new char[max_size];
-	snprintf(title, max_size, "Anzahl Ereignisse / %4.2f %s", binsize, unit);
+	snprintf(title, max_size, "Anzahl Ereignisse / %g %s", binsize, unit);
       }
       else {
 	title = new char[max_size];
-	snprintf(title, max_size, "Number of events / %4.2f %s", binsize, unit);
+	snprintf(title, max_size, "Number of events / %g %s", binsize, unit);
       }
-    }
-    else {
+    } else if (binsize == 1) {
       if (gGerman) {
 	title = new char[max_size];
-	snprintf(title, max_size, "Anzahl Ereignisse / %4.2f", binsize);
+	snprintf(title, max_size, "Anzahl Ereignisse");
       }
       else {
 	title = new char[max_size];
-	snprintf(title, max_size, "Number of events / %4.2f", binsize);
+	snprintf(title, max_size, "Number of events");
+      }
+    } else {
+      if (gGerman) {
+	title = new char[max_size];
+	snprintf(title, max_size, "Anzahl Ereignisse / %g", binsize);
+      }
+      else {
+	title = new char[max_size];
+	snprintf(title, max_size, "Number of events / %g", binsize);
       }
     }
   }
@@ -1136,8 +1211,28 @@ Double_t GetOptMax(Int_t period, const char * hname)
   return GetOpt(period, hname, "max");
 }
 
+double GetXNDC(double x) {
+  gPad->Update();//this is necessary!
+  return (x - gPad->GetX1())/(gPad->GetX2()-gPad->GetX1());
+}
 
-TArrow * arrow(Double_t position, Int_t neighbourbins)
+double GetXPad(double x) {
+  gPad->Update();//this is necessary!
+  return x * (gPad->GetX2()-gPad->GetX1()) + gPad->GetX1();
+}
+
+double GetYNDC(double y) {
+  gPad->Update();//this is necessary!
+  return (y - gPad->GetY1())/(gPad->GetY2()-gPad->GetY1());
+}
+
+double GetYPad(double y) {
+  gPad->Update();//this is necessary!
+  return y * (gPad->GetY2()-gPad->GetY1()) + gPad->GetY1();
+}
+
+
+TArrow * arrow(Double_t position, Int_t neighbourbins, const char * direction, Double_t height)
 {
   DEBUG("start arrow");
   // print arrow to indicate a cut
@@ -1182,9 +1277,60 @@ TArrow * arrow(Double_t position, Int_t neighbourbins)
   }
   DEBUG("ftop = " << ftop);
   DEBUG("fbottom = " << fbottom);
-  TArrow * a1 = new TArrow(position, ftop, position, fbottom);
+  TArrow * a1 = 0;
+
+  if (!strcmp(direction, "l")) {
+
+    Double_t positionNDC = GetXNDC(position)-0.0015;
+    Double_t x[4] = {positionNDC,
+    		     positionNDC - 0.03,
+    		     positionNDC,
+		     positionNDC};
+    Double_t y[4] = {height - 0.03,
+    		     height,
+    		     height + 0.03,
+		     height - 0.03};
+
+    TPolyLine * pline = new TPolyLine(4, x, y);
+    pline->SetNDC(kTRUE);
+    pline->SetLineWidth(3);
+    pline->SetFillColor(1);
+    pline->SetFillStyle(1001);
+    pline->Draw("f");
+    
+    TLine * l1 = new TLine(position, ftop, position, fmin);
+    l1->SetLineWidth(2);
+    l1->Draw();
+
+  } else if (!strcmp(direction, "r")) {
+
+    Double_t positionNDC = GetXNDC(position);
+    Double_t x[4] = {positionNDC,
+    		     positionNDC + 0.03,
+    		     positionNDC,
+		     positionNDC};
+    Double_t y[4] = {height - 0.03,
+    		     height,
+    		     height + 0.03,
+		     height - 0.03};
+
+    TPolyLine * pline = new TPolyLine(4, x, y);
+    pline->SetNDC(kTRUE);
+    pline->SetLineWidth(3);
+    pline->SetFillColor(1);
+    pline->SetFillStyle(1001);
+    pline->Draw("f");
+
+    TLine * l1 = new TLine(position, ftop, position, fmin);
+    l1->SetLineWidth(2);
+    l1->Draw();
+
+  } else {
+    a1 = new TArrow(position, ftop, position, fbottom);
+  }
   if (a1 == 0)
     return 0;
+ 
   a1->SetLineWidth(2);
   a1->SetArrowSize(0.03);
   a1->Draw();
@@ -1759,7 +1905,7 @@ void liny()
   padupdate();
 }
 
-void drawperiod(Int_t posi = -1)
+void drawperiod(Int_t posi)
 {
   DEBUG("enter drawperiod()");
 
@@ -1767,10 +1913,11 @@ void drawperiod(Int_t posi = -1)
   static TLatex * t[gMaxPad] = { 0 };
   char etext[50];
   if (gStart != gEnd) {
-    snprintf(etext, 50, "CMS %s - %s Work in progress", gPeriod[gStart], gPeriod[gEnd]); //preliminary
+    snprintf(etext, 50, "CMS %s - %s Private", gPeriod[gStart], gPeriod[gEnd]); //preliminary
   }
   else {
-    snprintf(etext, 50, "CMS %s Work in progress", gPeriod[gStart]);
+    // snprintf(etext, 50, "CMS %s Work in progress", gPeriod[gStart]);
+    snprintf(etext, 50, "CMS %s", "Private");
   }
 
   //Int_t hstart = FindFirstHisto();
@@ -1840,7 +1987,7 @@ void compose()
   DEBUG("leave compose");
 }
 
-void legend(Double_t mincontent, Int_t posi, Double_t miny)
+void legend(Double_t mincontent, Int_t posi, Double_t miny, Int_t col)
 {
   DEBUG("enter legend()");
   // draw a legend with currently used colors
@@ -1916,6 +2063,9 @@ void legend(Double_t mincontent, Int_t posi, Double_t miny)
     maxx = 0.69;
   }
   t[gPadNr] = new TLegend(minx, miny, maxx, 0.92);
+  if (col == 2)
+    t[gPadNr]->SetNColumns(2);
+  
   setopt(t[gPadNr]);
   for (Int_t i = 0; i < (Int_t) entries.size(); i++) {
     Int_t process = entries[i];
@@ -2248,32 +2398,31 @@ void ratio() {
 
   TH1D * stack = gStack[gPadNr][gOrder[gPadNr][0]]; // fully stacked histogram
   TH1D * ratio = new TH1D(*gStack[gPadNr][gMaxProcess-1]); // data
-
-  // stack->GetYaxis()->SetTitleOffset(1.);
-  // stack->GetYaxis()->SetTitleSize(0.05);
-
   ratio->Divide(stack);
+
+  // reset default userrange of histogram
   setopt(ratio);
-  
-  gCanvas->cd(2);
   ratio->SetMaximum(-1111);
   ratio->SetMinimum(-1111);
+
+  // transfer histogram information from main to ratio
   ratio->GetXaxis()->SetRange(stack->GetXaxis()->GetFirst(), stack->GetXaxis()->GetLast());
-
-  ratio->GetYaxis()->SetTitle("Data/MC Ratio");
-  ratio->GetYaxis()->CenterTitle();
-  ratio->GetYaxis()->SetTitleOffset(0.45);
-  ratio->GetYaxis()->SetTitleSize(0.10);;
-  ratio->GetYaxis()->SetLabelSize(0.11);
-  ratio->GetYaxis()->SetNdivisions(506);
-
   ratio->GetXaxis()->SetTitle(stack->GetXaxis()->GetTitle());
-  ratio->GetXaxis()->CenterTitle();
-  ratio->GetXaxis()->SetTitleOffset(1.05);
-  ratio->GetXaxis()->SetTitleSize(0.10);;
-  ratio->GetXaxis()->SetLabelSize(0.11);
-
+  setoptratio(ratio);
+  
+  // draw in ratio canvas
+  gCanvas->cd(2);
   ratio->Draw("e1p");
+
+  // add horizontal line at y = 1
+  TLine * line = new TLine(ratio->GetXaxis()->GetBinLowEdge(ratio->GetXaxis()->GetFirst()), 1.,
+			   ratio->GetXaxis()->GetBinUpEdge(ratio->GetXaxis()->GetLast()), 1.);
+  line->SetLineWidth(2);
+  line->SetLineStyle(2);
+  line->SetLineColor(kRed+1);
+  line->Draw();
+  
+  // return to main canvas
   gCanvas->cd(1);
 }
 
