@@ -16,11 +16,11 @@ void rootlogon () {
 
   // corrections to ugly ROOT standard style
   gROOT->SetStyle("Plain");
-  setNiceColorPalette();
 
   // load and apply CMS TDR style for plots
   gROOT->LoadMacro(Form("%s/root/tdrstyle.C", getenv("ARASYS")));
   setTDRStyle();
+  setNiceColorPalette();
 
   // set sumw2
   TH1::SetDefaultSumw2();
@@ -35,6 +35,9 @@ void rootlogon () {
   gROOT->LoadMacro(Form("%s/root/rpv.C+", getenv("ARASYS")));
   gROOT->LoadMacro(Form("%s/root/systematics.C+", getenv("ARASYS")));
   gROOT->LoadMacro(Form("%s/root/btag.C+", getenv("ARASYS")));
+
+  // load thesis submacro
+  gROOT->LoadMacro(Form("%s/root/finalplots.C+", getenv("ARASYS")));
 
   // set up everything to produce plots
   setup("plot.cfg");
