@@ -7,6 +7,10 @@
 #include <TVector.h>
 #include <TMatrix.h>
 
+#include <iomanip>
+#include <iostream>
+#include <fstream>
+
 Double_t chi2_int(Int_t start, Int_t end, Int_t & ndof, Int_t & nlow)
 {
   // compute chi2 for the global histograms. Used only internally,
@@ -90,6 +94,7 @@ void stat(Double_t low, Double_t up)
     // get integral for this mc
     nEvents[i] = gHisto[gPadNr][i]->Integral(start, end);
     nTotal += nEvents[i];
+
     // get expected number from global process information
     for (Int_t period = gStart; period <= gEnd; period++) {
       // compute expected events
@@ -143,6 +148,7 @@ void stat(Double_t low, Double_t up)
     else {
       nTotErrBack += nErr*nErr;
     }
+
     printf("%s:", gProcess[i].fname);
     nfill = 16 - strlen(gProcess[i].fname);
     for (Int_t j = 0; j < nfill; j++)
@@ -206,6 +212,8 @@ void stat(Double_t low, Double_t up)
 
   printf("*******************************************************************************\n");
 
+  
+
   delete[] nExpected;
   delete[] nGene;
   delete[] nEvents;
@@ -215,9 +223,69 @@ void stat(Double_t low, Double_t up)
 /** 
  * Output for each process the efficiency and error on the efficiency
  */
-void efficiency()
+void selection_efficiency(double start, double end)
 {
-  
+  Int_t hstart = FindFirstHisto();
+  if (hstart < 0)
+    return;
+ 
+  Double_t  * nEvents   = new Double_t[gMaxProcess]; // number of selected events
+  string summaryTitles[] = {
+    "signal_m0_300_m12_300",
+    "signal_m0_1000_m12_200",
+    "signal_m0_1000_m12_1200",
+    "dyll50",
+    "ttjets",
+    "ttzjets",
+    "zzjetsto4l",
+    "zzz",
+    "wwdoubleparton",
+    "sttw",
+    "qcd1000mu",
+    "data_doublemu"
+  };
+  Double_t nReference[] = {
+    469.,	// 300, 300
+    1906.,	// 1000, 200
+    43.3,	// 1000, 1200
+    2.192e6,	// dy
+    2.04e5,	// tt
+    793.,	// tt+v
+    1.5e5,	// diboson
+    122.7,	// vvv
+    110.,	// rare
+    2.982e4,	// single top
+    2.096e7,	// qcd
+    2.425e7	// data_doublemu
+  };
+  Double_t nSum = 0;
+  int pointer = 0;
+  ofstream out;
+  out.open("selection_efficiency.txt", ios::out | ios::app);
+
+  for (Int_t i = 0; i < gMaxProcess; i++) {
+    // zero out all values
+    nEvents[i] = 0;
+
+    if (gHisto[gPadNr][i] == 0) {
+      // mc does not exist
+      continue;
+    }
+    // get integral for this mc
+    nEvents[i] = gHisto[gPadNr][i]->Integral(start, end-0.001);
+    cout << gProcess[i].fname << "  " << nEvents[i] << endl;
+
+    nSum += nEvents[i];
+    if (gProcess[i].fname == summaryTitles[pointer]) {
+      cout << setw(25) << gProcess[i].fname << " " << setw(3) << nSum << endl;
+      cout << setw(25) << gProcess[i].fname << " sel. eff.: " << setw(3) << nSum/nReference[pointer] << endl;
+      out << setw(25) << gProcess[i].fname << " sel. eff.: " << setw(3) << nSum/nReference[pointer] << endl;
+      nSum = 0;
+      pointer++;
+    }
+  }
+
+  out.close();
 }
 
 void chi2(Double_t low = 0, Double_t up = 0)
