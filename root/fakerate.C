@@ -1080,6 +1080,8 @@ void create_fakehistograms(const char * sel)
   hist = fake_estimate_1d(sel, "m_gaugino");
   f->cd(); hist->Write();
   TH2D * hist2 = fake_estimate_2d(sel, "jjmm_m");
-  f->cd(); hist2->Write();  
+  f->cd(); hist2->Write();
+  hist2 = fake_estimate_2d(sel, "m_smu_chi");
+  f->cd(); hist2->Write();
   f->Close();
 }
