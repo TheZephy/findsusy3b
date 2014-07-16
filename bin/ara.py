@@ -108,7 +108,7 @@ ls
         sys.exit(1)
     for line in stdout.splitlines():
         # remove uberftp prompt
-        line = line.replace("uberftp> ", "")
+        line = line.replace("UberFTP> ", "")
         # split into file size and file name
         try:
             size = int(line.split()[4])
